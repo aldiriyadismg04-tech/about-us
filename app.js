@@ -4,10 +4,10 @@ const ANNIVERSARY = "2026-10-08";
 const ACCESS_CODE = "8102026";
 
 // Supabase configuration
-const SUPABASE_URL = "https://hjmsqflsgjaocrcunrjb.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://hjmsqflsgjaocrcunrjb.supabase.co";
 const SUPABASE_KEY = "sb_publishable_KgJXq1G2iThdGqnnL4BHAA_isaIGEw_";
 
-const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
