@@ -1,5 +1,5 @@
 
-const AI_WORKER_URL = "https://our-little-universe-ai.YOURSUBDOMAIN.workers.dev";
+const AI_WORKER_URL = "https://our-little-universe-ai.aldigaming617.workers.dev/question";
 const ANNIVERSARY = "2026-10-08";
 const ACCESS_CODE = "8102026";
 
