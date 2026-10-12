@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100d1b">
+  <title>Our Little Universe ♡</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="login" class="login-wrap">
+    <div class="login-card">
+      <div class="moon">☾</div>
+      <p class="eyebrow">A LITTLE PLACE FOR US</p>
+      <h1>Our Little<br><span>Universe</span></h1>
+      <p class="muted">Sebuah semesta kecil untuk cerita kita.</p>
+      <form id="login-form">
+        <input id="access-code" type="password" placeholder="Kode rahasia kita" required>
+        <button class="primary" type="submit">Masuk ke semesta ✦</button>
+        <p id="login-error" class="error"></p>
+      </form>
+      <p class="muted tiny">made with ♡, just for us</p>
+    </div>
+  </section>
+
+  <main id="app" class="hidden">
+    <header class="topbar">
+      <a class="brand" href="#" data-page="home">our little <span>universe ✦</span></a>
+      <button id="logout" class="icon-button">↗</button>
+    </header>
+
+    <section id="page-home" class="page">
+      <div class="hero">
+        <p class="eyebrow">OUR OWN LITTLE WORLD</p>
+        <h1>Hi, love. <span>♡</span></h1>
+        <p class="muted">Di antara miliaran manusia, aku senang semesta mempertemukan kita.</p>
+        <p id="today-date" class="tiny"></p>
+      </div>
+
+      <div class="stats">
+        <article class="card">
+          <p class="muted small">♡ Our days together</p>
+          <div id="days" class="number">0</div>
+          <p class="muted tiny">hari dalam cerita kita</p>
+        </article>
+        <article class="card">
+          <p class="muted small">✧ Next anniversary</p>
+          <div id="countdown" class="number">0</div>
+          <p class="muted tiny">hari menuju anniversary</p>
+        </article>
+      </div>
+
+      <button class="streak-card" data-page="streak">
+        <div>
+          <p class="eyebrow">OUR DAILY STREAK</p>
+          <h2>🔥 <span id="home-streak">0</span> days</h2>
+          <p id="home-streak-status" class="muted small">Jaga api kita tetap menyala.</p>
+        </div>
+        <span>↗</span>
+      </button>
+
+      <div class="section-title">
+        <h2>Today's note 💌</h2>
+        <button class="text-button" data-page="notes">Lihat semua ↗</button>
+      </div>
+      <article class="card">
+        <p id="home-note" class="note-text">Belum ada catatan hari ini.</p>
+        <div id="home-music"></div>
+        <button class="secondary" data-page="notes">Tulis catatan ♡</button>
+      </article>
+
+      <button class="question-card" data-page="questions">
+        <span class="question-icon">☁</span>
+        <div>
+          <p class="eyebrow">GET TO KNOW EACH OTHER</p>
+          <h3>Daily Questions AI</h3>
+          <p class="muted small">Satu pertanyaan baru setiap hari.</p>
+        </div>
+        <span>↗</span>
+      </button>
+    </section>
+
+    <section id="page-streak" class="page">
+      <button class="back" data-page="home">← Kembali</button>
+      <div class="subhero">
+        <p class="eyebrow">EVERY DAY, A LITTLE CLOSER</p>
+        <h1>Our Streak 🔥</h1>
+        <p class="muted">Jarak boleh ada, jangan lupa hadir untuk satu sama lain.</p>
+      </div>
+      <div class="flame-card">
+        <div id="big-flame" class="flame dim">🔥</div>
+        <div class="number"><span id="streak-count">0</span> <small>days</small></div>
+        <p id="streak-message" class="muted small"></p>
+      </div>
+      <article class="card">
+        <h2>Today's check-in</h2>
+        <p class="muted small">Pilih namamu untuk menyalakan api hari ini.</p>
+        <div class="two-buttons">
+          <button class="person" data-person="Aldi">♡ Aldi</button>
+          <button class="person" data-person="Partner">♡ Partner</button>
+        </div>
+        <p id="checkin-status" class="muted small"></p>
+      </article>
+      <p class="muted tiny">Versi awal menyimpan check-in di browser ini saja.</p>
+    </section>
+
+    <section id="page-notes" class="page">
+      <button class="back" data-page="home">← Kembali</button>
+      <div class="subhero">
+        <p class="eyebrow">WORDS THAT STAY</p>
+        <h1>Our Notes 💌</h1>
+        <p class="muted">Pesan kecil, cerita, atau lagu untuk satu sama lain.</p>
+      </div>
+      <form id="note-form" class="card">
+        <label for="note-author">Namamu</label>
+        <select id="note-author">
+          <option>Aldi</option>
+          <option>Partner</option>
+        </select>
+        <label for="note-text">Catatan</label>
+        <textarea id="note-text" maxlength="600" placeholder="Aku ingin cerita sesuatu..." required></textarea>
+        <label for="music-link">Link lagu Spotify atau YouTube (opsional)</label>
+        <input id="music-link" type="url" placeholder="https://...">
+        <button class="primary">Simpan catatan ♡</button>
+      </form>
+      <div class="section-title"><h2>Memory notes</h2></div>
+      <div id="notes-list" class="stack"></div>
+    </section>
+
+    <section id="page-questions" class="page">
+      <button class="back" data-page="home">← Kembali</button>
+      <div class="subhero">
+        <p class="eyebrow">A QUESTION FOR TWO</p>
+        <h1>Daily Questions ☁</h1>
+        <p class="muted">Pertanyaan baru dari AI setiap hari.</p>
+      </div>
+      <article class="card">
+        <p class="eyebrow">TODAY'S QUESTION</p>
+        <p id="question-date" class="muted tiny"></p>
+        <h2 id="daily-question">Menyiapkan pertanyaan...</h2>
+        <button id="refresh-question" class="secondary">↻ Muat ulang pertanyaan</button>
+        <p class="muted tiny">Muat ulang tidak membuat pertanyaan baru jika pertanyaan hari ini sudah tersimpan.</p>
+        <label for="answer-author">Jawaban dari</label>
+        <select id="answer-author">
+          <option>Aldi</option>
+          <option>Partner</option>
+        </select>
+        <label for="answer-text">Jawabanmu</label>
+        <textarea id="answer-text" maxlength="500" placeholder="Ceritakan jawabanmu..."></textarea>
+        <button id="submit-answer" class="primary">Kirim jawaban ♡</button>
+        <p id="answers-status" class="muted small"></p>
+        <div id="answers-reveal" class="hidden"></div>
+      </article>
+      <p class="muted tiny">Jawaban pada versi awal tersimpan di browser ini, belum tersinkron ke perangkat pasangan.</p>
+    </section>
+
+    <section id="page-settings" class="page">
+      <button class="back" data-page="home">← Kembali</button>
+      <div class="subhero">
+        <p class="eyebrow">MAKE IT YOURS</p>
+        <h1>Our Settings ⚙</h1>
+        <p class="muted">Atur semesta kecil ini sesuai selera kalian.</p>
+      </div>
+      <article class="card">
+        <label for="theme">Tema warna</label>
+        <select id="theme">
+          <option value="purple">Midnight Purple</option>
+          <option value="rose">Rose Galaxy</option>
+          <option value="blue">Ocean Night</option>
+        </select>
+        <label for="wallpaper">URL wallpaper (opsional)</label>
+        <input id="wallpaper" type="url" placeholder="https://...">
+        <button id="save-settings" class="primary">Simpan tampilan ✦</button>
+      </article>
+      <article class="card center">
+        <p class="eyebrow">OUR SPECIAL DATE</p>
+        <h2>08 · 10 · 2026</h2>
+        <p class="muted small">A little universe, just for us.</p>
+      </article>
+    </section>
+
+    <nav class="bottom-nav">
+      <button class="nav-button selected" data-page="home"><span>⌂</span><small>Home</small></button>
+      <button class="nav-button" data-page="streak"><span>🔥</span><small>Streak</small></button>
+      <button class="nav-button" data-page="notes"><span>♡</span><small>Notes</small></button>
+      <button class="nav-button" data-page="questions"><span>☁</span><small>Questions</small></button>
+      <button class="nav-button" data-page="settings"><span>⚙</span><small>Settings</small></button>
+    </nav>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
