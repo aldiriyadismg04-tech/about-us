@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -54,11 +53,13 @@
       <a class="brand" href="#" data-page="home">
         our little <span>universe ✦</span>
       </a>
-      <button id="logout" class="icon-button" type="button">↗</button>
+      <button id="logout" class="icon-button" type="button" aria-label="Keluar">
+        ↗
+      </button>
     </header>
 
     <!-- HOME -->
-    <section id="page-home" class="page">
+    <section id="page-home" class="page active">
       <div class="hero">
         <p class="eyebrow">OUR OWN LITTLE WORLD</p>
         <h1>Hi, love. <span>♡</span></h1>
@@ -84,20 +85,28 @@
         <div>
           <p class="eyebrow">OUR DAILY STREAK</p>
           <h2>🔥 <span id="home-streak">0</span> days</h2>
-          <p id="home-streak-status" class="muted small">Jaga api kita tetap menyala.</p>
+          <p id="home-streak-status" class="muted small">
+            Jaga api kita tetap menyala.
+          </p>
         </div>
         <span>↗</span>
       </button>
 
       <div class="section-title">
         <h2>Today's note 💌</h2>
-        <button class="text-button" data-page="notes" type="button">Lihat semua ↗</button>
+        <button class="text-button" data-page="notes" type="button">
+          Lihat semua ↗
+        </button>
       </div>
 
       <article class="card">
-        <p id="home-note" class="note-text">Belum ada catatan hari ini.</p>
+        <p id="home-note" class="note-text">
+          Belum ada catatan hari ini.
+        </p>
         <div id="home-music"></div>
-        <button class="secondary" data-page="notes" type="button">Tulis catatan ♡</button>
+        <button class="secondary" data-page="notes" type="button">
+          Tulis catatan ♡
+        </button>
       </article>
 
       <button class="question-card" data-page="questions" type="button">
@@ -113,112 +122,155 @@
 
     <!-- STREAK -->
     <section id="page-streak" class="page">
-      <button class="back" data-page="home" type="button">← Kembali</button>
+      <button class="back" data-page="home" type="button">
+        ← Kembali
+      </button>
 
       <div class="subhero">
         <p class="eyebrow">EVERY DAY, A LITTLE CLOSER</p>
         <h1>Our Streak 🔥</h1>
-        <p class="muted">Jarak boleh ada, jangan lupa hadir untuk satu sama lain.</p>
+        <p class="muted">
+          Jarak boleh ada, jangan lupa hadir untuk satu sama lain.
+        </p>
       </div>
 
       <div class="flame-card">
         <div id="big-flame" class="flame dim">🔥</div>
-        <div class="number"><span id="streak-count">0</span> <small>days</small></div>
+        <div class="number">
+          <span id="streak-count">0</span> <small>days</small>
+        </div>
         <p id="streak-message" class="muted small"></p>
       </div>
 
       <article class="card">
         <h2>Today's check-in</h2>
-        <p class="muted small">Pilih namamu untuk menyalakan api hari ini.</p>
+        <p class="muted small">
+          Pilih namamu untuk menyalakan api hari ini.
+        </p>
 
         <div class="two-buttons">
-          <button class="person" data-person="Aldi" type="button">♡ Aldi</button>
-          <button class="person" data-person="Partner" type="button">♡ Partner</button>
+          <button class="person" data-person="me" type="button">
+            ♡ <span class="my-name">Aku</span>
+          </button>
+
+          <button class="person" data-person="partner" type="button">
+            ♡ <span class="partner-name">Pasangan</span>
+          </button>
         </div>
 
         <p id="checkin-status" class="muted small"></p>
       </article>
-
-      <p class="muted tiny">Versi awal menyimpan check-in di browser ini saja.</p>
     </section>
 
     <!-- NOTES -->
     <section id="page-notes" class="page">
-      <button class="back" data-page="home" type="button">← Kembali</button>
+      <button class="back" data-page="home" type="button">
+        ← Kembali
+      </button>
 
       <div class="subhero">
         <p class="eyebrow">WORDS THAT STAY</p>
         <h1>Our Notes 💌</h1>
-        <p class="muted">Pesan kecil, cerita, atau lagu untuk satu sama lain.</p>
+        <p class="muted">
+          Pesan kecil, cerita, atau lagu untuk satu sama lain.
+        </p>
       </div>
 
       <form id="note-form" class="card">
         <label for="note-author">Namamu</label>
-        <select id="note-author">
-          <option>Aldi</option>
-          <option>Partner</option>
-        </select>
+        <select id="note-author" required></select>
 
         <label for="note-text">Catatan</label>
-        <textarea id="note-text" maxlength="600" placeholder="Aku ingin cerita sesuatu..." required></textarea>
+        <textarea
+          id="note-text"
+          maxlength="600"
+          placeholder="Aku ingin cerita sesuatu..."
+          required
+        ></textarea>
 
-        <label for="music-link">Link lagu Spotify atau YouTube (opsional)</label>
-        <input id="music-link" type="url" placeholder="https://...">
+        <label for="music-link">
+          Link lagu Spotify atau YouTube (opsional)
+        </label>
+        <input
+          id="music-link"
+          type="url"
+          placeholder="https://..."
+        >
 
-        <button class="primary" type="submit">Simpan catatan ♡</button>
+        <button class="primary" type="submit">
+          Simpan catatan ♡
+        </button>
       </form>
 
-      <div class="section-title"><h2>Memory notes</h2></div>
+      <div class="section-title">
+        <h2>Memory notes</h2>
+      </div>
+
       <div id="notes-list" class="stack"></div>
     </section>
 
     <!-- DAILY QUESTIONS -->
     <section id="page-questions" class="page">
-      <button class="back" data-page="home" type="button">← Kembali</button>
+      <button class="back" data-page="home" type="button">
+        ← Kembali
+      </button>
 
       <div class="subhero">
         <p class="eyebrow">A QUESTION FOR TWO</p>
         <h1>Daily Questions ☁</h1>
-        <p class="muted">Pertanyaan baru dari AI setiap hari.</p>
+        <p class="muted">
+          Pertanyaan baru dari AI setiap hari.
+        </p>
       </div>
 
       <article class="card">
         <p class="eyebrow">TODAY'S QUESTION</p>
         <p id="question-date" class="muted tiny"></p>
-        <h2 id="daily-question">Menyiapkan pertanyaan...</h2>
+
+        <h2 id="daily-question">
+          Menyiapkan pertanyaan...
+        </h2>
 
         <button id="refresh-question" class="secondary" type="button">
           ↻ Muat ulang pertanyaan
         </button>
 
-        <p class="muted tiny">Muat ulang tidak membuat pertanyaan baru jika pertanyaan hari ini sudah tersimpan.</p>
+        <p class="muted tiny">
+          Muat ulang tidak membuat pertanyaan baru jika pertanyaan
+          hari ini sudah tersimpan.
+        </p>
 
         <label for="answer-author">Jawaban dari</label>
-        <select id="answer-author">
-          <option>Aldi</option>
-          <option>Partner</option>
-        </select>
+        <select id="answer-author" required></select>
 
         <label for="answer-text">Jawabanmu</label>
-        <textarea id="answer-text" maxlength="500" placeholder="Ceritakan jawabanmu..."></textarea>
+        <textarea
+          id="answer-text"
+          maxlength="500"
+          placeholder="Ceritakan jawabanmu..."
+        ></textarea>
 
-        <button id="submit-answer" class="primary" type="button">Kirim jawaban ♡</button>
+        <button id="submit-answer" class="primary" type="button">
+          Kirim jawaban ♡
+        </button>
 
         <p id="answers-status" class="muted small"></p>
         <div id="answers-reveal" class="hidden"></div>
       </article>
-
-      <p class="muted tiny">Jawaban pada versi awal tersimpan di browser ini, belum tersinkron ke perangkat pasangan.</p>
     </section>
 
     <!-- SETTINGS -->
     <section id="page-settings" class="page">
-      <button class="back" data-page="home" type="button">← Kembali</button>
+      <button class="back" data-page="home" type="button">
+        ← Kembali
+      </button>
 
       <div class="subhero">
         <p class="eyebrow">MAKE IT YOURS</p>
         <h1>Our Settings ⚙</h1>
-        <p class="muted">Atur semesta kecil ini sesuai selera kalian.</p>
+        <p class="muted">
+          Atur semesta kecil ini sesuai selera kalian.
+        </p>
       </div>
 
       <article class="card">
@@ -232,7 +284,9 @@
         <label for="wallpaper">URL wallpaper (opsional)</label>
         <input id="wallpaper" type="url" placeholder="https://...">
 
-        <button id="save-settings" class="primary" type="button">Simpan tampilan ✦</button>
+        <button id="save-settings" class="primary" type="button">
+          Simpan tampilan ✦
+        </button>
       </article>
 
       <article class="card center">
@@ -244,15 +298,31 @@
 
     <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
-      <button class="nav-button selected" data-page="home" type="button"><span>⌂</span><small>Home</small></button>
-      <button class="nav-button" data-page="streak" type="button"><span>🔥</span><small>Streak</small></button>
-      <button class="nav-button" data-page="notes" type="button"><span>♡</span><small>Notes</small></button>
-      <button class="nav-button" data-page="questions" type="button"><span>☁</span><small>Questions</small></button>
-      <button class="nav-button" data-page="settings" type="button"><span>⚙</span><small>Settings</small></button>
+      <button class="nav-button selected" data-page="home" type="button">
+        <span>⌂</span><small>Home</small>
+      </button>
+
+      <button class="nav-button" data-page="streak" type="button">
+        <span>🔥</span><small>Streak</small>
+      </button>
+
+      <button class="nav-button" data-page="notes" type="button">
+        <span>♡</span><small>Notes</small>
+      </button>
+
+      <button class="nav-button" data-page="questions" type="button">
+        <span>☁</span><small>Questions</small>
+      </button>
+
+      <button class="nav-button" data-page="settings" type="button">
+        <span>⚙</span><small>Settings</small>
+      </button>
     </nav>
   </main>
 
+  <!-- SUPABASE & APP -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
+
 </body>
 </html>
