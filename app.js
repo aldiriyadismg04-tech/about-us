@@ -111,7 +111,6 @@ function updateNameLabels() {
     el.textContent = PARTNER_NAME;
   });
 
-  // Catatan selalu dibuat atas nama akun yang login.
   const noteAuthor = $("#note-author");
   if (noteAuthor) {
     noteAuthor.innerHTML =
@@ -120,7 +119,6 @@ function updateNameLabels() {
     noteAuthor.disabled = true;
   }
 
-  // Jawaban juga mengikuti akun yang login.
   const answerAuthor = $("#answer-author");
   if (answerAuthor) {
     answerAuthor.innerHTML =
@@ -145,7 +143,7 @@ async function initializeCouple() {
 
   if (!membership) {
     throw new Error(
-      "Akun ini belum terhubung ke pasangan di tabel couple_members. Kita perlu menyiapkan data pasangan di Supabase."
+      "Akun ini belum terhubung ke pasangan di tabel couple_members."
     );
   }
 
@@ -162,7 +160,7 @@ async function initializeCouple() {
 
   if (!partner) {
     throw new Error(
-      "Akun pasangan belum ditemukan di couple_members. Pastikan Aldi dan Liza masuk ke pasangan yang sama."
+      "Akun pasangan belum ditemukan di couple_members."
     );
   }
 
@@ -182,7 +180,6 @@ async function startApp(user) {
 
   if (syncTimer) clearInterval(syncTimer);
 
-  // Memperbarui data dari server secara berkala.
   syncTimer = setInterval(() => {
     if (currentUser && coupleId) syncAll();
   }, 15000);
@@ -209,7 +206,6 @@ $("#login-form").addEventListener("submit", async event => {
     await startApp(data.user);
   } catch (error) {
     console.error("Login/app error:", error);
-
     $("#login-error").textContent =
       error.message || "Gagal membuka aplikasi.";
   } finally {
@@ -232,6 +228,7 @@ $("#logout").addEventListener("click", async () => {
   currentUser = null;
   coupleId = null;
   partnerUserId = null;
+  activeQuestionDate = null;
   checkinRows = [];
   notesRows = [];
   answerRows = [];
@@ -254,7 +251,7 @@ async function restoreSession() {
     try {
       await startApp(data.session.user);
     } catch (error) {
-      console.error(error);
+      console.error("Restore session error:", error);
       $("#login-error").textContent =
         error.message || "Gagal memuat data pasangan.";
       await supabaseClient.auth.signOut();
@@ -373,12 +370,6 @@ async function fetchNotes() {
 // ==========================================
 
 function streakCount() {
-  const dates = new Set();
-
-  checkinRows.forEach(row => {
-    dates.add(row.checkin_date);
-  });
-
   const d = new Date(today() + "T00:00:00");
   let count = 0;
 
@@ -441,8 +432,6 @@ function renderStreak() {
     const checked = isMe ? meChecked : isPartner ? partnerChecked : false;
 
     button.classList.toggle("checked", checked);
-
-    // Akun hanya boleh check-in untuk dirinya sendiri.
     button.disabled = !isMe || meChecked;
   });
 
@@ -463,21 +452,24 @@ $$(".person").forEach(button => {
 
     button.disabled = true;
 
-    const { error } = await supabaseClient
-      .from("checkins")
-      .insert({
-        couple_id: coupleId,
-        user_id: currentUser.id,
-        checkin_date: today()
-      });
+    try {
+      const { error } = await supabaseClient
+        .from("checkins")
+        .insert({
+          couple_id: coupleId,
+          user_id: currentUser.id,
+          checkin_date: today()
+        });
 
-    if (error && error.code !== "23505") {
-      console.error(error);
-      alert("Check-in gagal disimpan. Periksa koneksi dan kebijakan Supabase.");
+      if (error && error.code !== "23505") throw error;
+
+      await fetchCheckins();
+      renderStreak();
+    } catch (error) {
+      console.error("Check-in error:", error);
+      alert(`Check-in gagal: ${error.message || "Kesalahan tidak diketahui."}`);
+      button.disabled = false;
     }
-
-    await fetchCheckins();
-    renderStreak();
   });
 });
 
@@ -549,8 +541,8 @@ $("#note-form").addEventListener("submit", async event => {
     await fetchNotes();
     renderNotes();
   } catch (error) {
-    console.error(error);
-    alert("Catatan gagal disimpan. Periksa kebijakan tabel notes di Supabase.");
+    console.error("Note error:", error);
+    alert(`Catatan gagal disimpan: ${error.message || "Kesalahan tidak diketahui."}`);
   } finally {
     if (submitButton) submitButton.disabled = false;
   }
@@ -570,16 +562,37 @@ async function loadQuestion() {
 
   questionRequest = (async () => {
     try {
-      const response = await fetch(`${AI_WORKER_URL}/question`);
-      const result = await response.json();
+      // LANGKAH 1: Meminta pertanyaan dari Cloudflare Worker.
+      let response;
+
+      try {
+        response = await fetch(`${AI_WORKER_URL}/question`);
+      } catch (networkError) {
+        throw new Error(
+          `Cloudflare Worker tidak dapat dihubungi. ${networkError.message || ""}`
+        );
+      }
+
+      let result;
+
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error(
+          `Worker mengembalikan respons yang bukan JSON. HTTP ${response.status}.`
+        );
+      }
 
       if (!response.ok || !result.question || !result.date) {
-        throw new Error(result.error || "Pertanyaan belum tersedia.");
+        throw new Error(
+          `Cloudflare Worker gagal. HTTP ${response.status}. ${result.error || "Pertanyaan atau tanggal tidak tersedia."}`
+        );
       }
 
       activeQuestionDate = result.date;
 
-      let { data: savedQuestion, error: selectError } =
+      // LANGKAH 2: Mencari pertanyaan yang sudah tersimpan di Supabase.
+      const { data: savedQuestion, error: selectError } =
         await supabaseClient
           .from("daily_questions")
           .select("question")
@@ -587,9 +600,16 @@ async function loadQuestion() {
           .eq("question_date", activeQuestionDate)
           .maybeSingle();
 
-      if (selectError) throw selectError;
+      if (selectError) {
+        throw new Error(
+          `Gagal membaca daily_questions. Kode: ${selectError.code || "-"}. ${selectError.message}`
+        );
+      }
 
-      if (!savedQuestion) {
+      let finalQuestion = savedQuestion?.question;
+
+      // LANGKAH 3: Jika belum ada, simpan pertanyaan ke Supabase.
+      if (!finalQuestion) {
         const { error: insertError } = await supabaseClient
           .from("daily_questions")
           .insert({
@@ -599,9 +619,14 @@ async function loadQuestion() {
           });
 
         if (insertError && insertError.code !== "23505") {
-          throw insertError;
+          throw new Error(
+            `Gagal menyimpan daily_questions. Kode: ${insertError.code || "-"}. ${insertError.message}` +
+            (insertError.details ? ` Detail: ${insertError.details}` : "") +
+            (insertError.hint ? ` Petunjuk: ${insertError.hint}` : "")
+          );
         }
 
+        // Baca ulang setelah menyimpan atau jika data sudah dibuat akun pasangan.
         const retry = await supabaseClient
           .from("daily_questions")
           .select("question")
@@ -609,21 +634,35 @@ async function loadQuestion() {
           .eq("question_date", activeQuestionDate)
           .maybeSingle();
 
-        if (retry.error) throw retry.error;
-        savedQuestion = retry.data;
+        if (retry.error) {
+          throw new Error(
+            `Pertanyaan dikirim, tetapi gagal dibaca ulang. Kode: ${retry.error.code || "-"}. ${retry.error.message}`
+          );
+        }
+
+        finalQuestion = retry.data?.question || result.question;
       }
 
+      // LANGKAH 4: Tampilkan pertanyaan.
       $("#question-date").textContent = dateLabel(activeQuestionDate);
-      $("#daily-question").textContent =
-        savedQuestion?.question || result.question;
+      $("#daily-question").textContent = finalQuestion;
 
-      await fetchAnswers();
-      renderAnswers();
+      // Error jawaban ditangani terpisah supaya tidak disalahartikan
+      // sebagai kegagalan menyimpan pertanyaan.
+      try {
+        await fetchAnswers();
+        renderAnswers();
+      } catch (answerError) {
+        console.error("Daily answers error:", answerError);
+        $("#answers-status").textContent =
+          `Pertanyaan berhasil dimuat, tetapi jawaban gagal dibaca: ${answerError.message || "Kesalahan tidak diketahui."}`;
+      }
+
     } catch (error) {
       console.error("Question error:", error);
       $("#daily-question").textContent = "Pertanyaan belum tersedia.";
       $("#answers-status").textContent =
-        "Gagal memuat pertanyaan atau menyimpan ke Supabase. Periksa kebijakan daily_questions.";
+        `Penyebab: ${error.message || "Kesalahan tidak diketahui."}`;
     } finally {
       questionRequest = null;
     }
@@ -722,8 +761,10 @@ $("#submit-answer").addEventListener("click", async () => {
     await fetchAnswers();
     renderAnswers();
   } catch (error) {
-    console.error(error);
-    alert("Jawaban gagal disimpan. Pastikan pertanyaan sudah ada di Supabase dan kebijakan daily_answers benar.");
+    console.error("Answer error:", error);
+    alert(
+      `Jawaban gagal disimpan. Kode: ${error.code || "-"}. ${error.message || "Kesalahan tidak diketahui."}`
+    );
   } finally {
     button.disabled = false;
   }
