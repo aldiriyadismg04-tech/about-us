@@ -1,7 +1,6 @@
 
 const AI_WORKER_URL = "https://our-little-universe-ai.aldigaming617.workers.dev";
 const ANNIVERSARY = "2026-10-08";
-const ACCESS_CODE = "8102026";
 
 // Supabase configuration
 const SUPABASE_URL = "https://hjmsqflsgjaocrcunrjb.supabase.co";
@@ -46,17 +45,36 @@ function dateLabel(value) {
   });
 }
 
-// LOGIN DEMO
-$("#login-form").addEventListener("submit", event => {
+// LOGIN SUPABASE
+$("#login-form").addEventListener("submit", async event => {
   event.preventDefault();
 
-  if ($("#access-code").value !== ACCESS_CODE) {
-    $("#login-error").textContent = "Kode salah. Coba lagi ya ♡";
-    return;
-  }
+  const email = $("#login-email").value.trim();
+  const password = $("#login-password").value;
+  const button = $("#login-form button");
+  const originalText = button.textContent;
 
-  sessionStorage.setItem("olu-login", "yes");
-  openApp();
+  $("#login-error").textContent = "";
+  button.disabled = true;
+  button.textContent = "Membuka semesta...";
+
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    openApp();
+  } catch (error) {
+    console.error(error);
+    $("#login-error").textContent =
+      "Login gagal. Periksa email dan password kamu.";
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 });
 
 function openApp() {
@@ -68,14 +86,31 @@ function openApp() {
   loadQuestion();
 }
 
-$("#logout").addEventListener("click", () => {
-  sessionStorage.removeItem("olu-login");
+$("#logout").addEventListener("click", async () => {
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    alert("Gagal keluar. Coba lagi ya.");
+    return;
+  }
+
   $("#app").classList.add("hidden");
   $("#login").classList.remove("hidden");
-  $("#access-code").value = "";
+  $("#login-password").value = "";
 });
 
-if (sessionStorage.getItem("olu-login") === "yes") openApp();
+async function restoreSession() {
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  if (data.session) openApp();
+}
+
+restoreSession();
 
 // NAVIGATION
 function showPage(name) {
@@ -240,7 +275,6 @@ let activeQuestionDate = null;
 let questionRequest = null;
 
 async function loadQuestion() {
-  // Cegah request berulang saat pengguna berpindah menu.
   if (questionRequest) return questionRequest;
 
   $("#daily-question").textContent = "AI sedang membuat pertanyaan... ✨";
@@ -299,7 +333,6 @@ function renderAnswers() {
 }
 
 $("#refresh-question").addEventListener("click", () => {
-  // Pertanyaan harian tetap sama; tombol ini hanya memuat ulang.
   questionRequest = null;
   loadQuestion();
 });
