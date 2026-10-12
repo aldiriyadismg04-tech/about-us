@@ -7,7 +7,10 @@ const ACCESS_CODE = "8102026";
 const SUPABASE_URL = "https://hjmsqflsgjaocrcunrjb.supabase.co";
 const SUPABASE_KEY = "sb_publishable_KgJXq1G2iThdGqnnL4BHAA_isaIGEw_";
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
