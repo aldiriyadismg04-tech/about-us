@@ -67,11 +67,13 @@ $("#login-form").addEventListener("submit", async event => {
     if (error) throw error;
 
     openApp();
-  } catch (error) {
-    console.error(error);
-    $("#login-error").textContent =
-      "Login gagal. Periksa email dan password kamu.";
-  } finally {
+  
+} catch (error) {
+  console.error("Login error:", error);
+  $("#login-error").textContent =
+    error.message || "Terjadi kesalahan saat login.";
+}
+finally {
     button.disabled = false;
     button.textContent = originalText;
   }
