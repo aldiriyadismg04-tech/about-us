@@ -1,9 +1,7 @@
+
 const AI_WORKER_URL = "https://our-little-universe-ai.aldigaming617.workers.dev";
 const ANNIVERSARY = "2026-10-08";
 
-// ==========================================
-// SUPABASE CONFIGURATION
-// ==========================================
 const SUPABASE_URL = "https://hjmsqflsgjaocrcunrjb.supabase.co";
 const SUPABASE_KEY = "sb_publishable_KgJXq1G2iThdGqnnL4BHAA_isaIGEw_";
 
@@ -12,41 +10,34 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_KEY
 );
 
-// GANTI EMAIL CONTOH DI BAWAH DENGAN EMAIL AKUN ASLI
 const ACCOUNT_NAMES = {
   "aldiriyadismg04@gmail.com": {
     myName: "Aldi",
-    partnerName: "Liza",
-    myId: "aldi",
-    partnerId: "liza"
+    partnerName: "Liza"
   },
-
   "shalizawatiliza@gmail.com": {
     myName: "Liza",
-    partnerName: "Aldi",
-    myId: "liza",
-    partnerId: "aldi"
+    partnerName: "Aldi"
   }
 };
 
+let currentUser = null;
+let coupleId = null;
+let partnerUserId = null;
 let MY_NAME = "Aldi";
 let PARTNER_NAME = "Liza";
-let MY_ID = "aldi";
-let PARTNER_ID = "liza";
-const ID_TO_NAME = {
-  aldi: "Aldi",
-  liza: "Liza"
-};
+let activeQuestionDate = null;
+let questionRequest = null;
+let syncTimer = null;
+
+let checkinRows = [];
+let notesRows = [];
+let answerRows = [];
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
 
-// ==========================================
-// LOCAL STORAGE
-// Catatan: penyimpanan ini belum tersinkron
-// otomatis antarperangkat.
-// ==========================================
-const db = {
+const localDB = {
   get(key, fallback) {
     try {
       const value = localStorage.getItem(key);
@@ -55,7 +46,6 @@ const db = {
       return fallback;
     }
   },
-
   set(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
   }
@@ -63,7 +53,6 @@ const db = {
 
 function today() {
   const d = new Date();
-
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -85,74 +74,120 @@ function dateLabel(value) {
   });
 }
 
-function displayNameForId(id) {
-  return ID_TO_NAME[id] || id || "Pengguna";
+function timestampDate(value) {
+  const d = new Date(value);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// ==========================================
-// ACCOUNT IDENTITY
-// ==========================================
+function displayNameForUser(userId) {
+  if (userId === currentUser?.id) return MY_NAME;
+  if (userId === partnerUserId) return PARTNER_NAME;
+  return "Pengguna";
+}
+
 function setAccountNames(user) {
   const email = user?.email?.trim().toLowerCase();
   const account = ACCOUNT_NAMES[email];
 
   if (!account) {
     throw new Error(
-      "Email akun belum terdaftar. Periksa konfigurasi ACCOUNT_NAMES di app.js."
+      "Email ini belum didaftarkan dalam ACCOUNT_NAMES di app.js."
     );
   }
 
+  currentUser = user;
   MY_NAME = account.myName;
   PARTNER_NAME = account.partnerName;
-  MY_ID = account.myId;
-  PARTNER_ID = account.partnerId;
 
   updateNameLabels();
 }
 
 function updateNameLabels() {
-  $$(".my-name").forEach(element => {
-    element.textContent = MY_NAME;
+  $$(".my-name").forEach(el => {
+    el.textContent = MY_NAME;
   });
 
-  $$(".partner-name").forEach(element => {
-    element.textContent = PARTNER_NAME;
+  $$(".partner-name").forEach(el => {
+    el.textContent = PARTNER_NAME;
   });
 
-  // Dropdown catatan
+  // Catatan selalu dibuat atas nama akun yang login.
   const noteAuthor = $("#note-author");
-
   if (noteAuthor) {
-    const previous = noteAuthor.value;
-
-    noteAuthor.innerHTML = `
-      <option value="${MY_ID}">${MY_NAME}</option>
-      <option value="${PARTNER_ID}">${PARTNER_NAME}</option>
-    `;
-
-    noteAuthor.value =
-      previous === MY_ID || previous === PARTNER_ID
-        ? previous
-        : MY_ID;
+    noteAuthor.innerHTML =
+      `<option value="me">${escapeHTML(MY_NAME)}</option>`;
+    noteAuthor.value = "me";
+    noteAuthor.disabled = true;
   }
 
-  // Dropdown jawaban pertanyaan harian
+  // Jawaban juga mengikuti akun yang login.
   const answerAuthor = $("#answer-author");
-
   if (answerAuthor) {
-    answerAuthor.innerHTML = `
-      <option value="${MY_ID}">${MY_NAME}</option>
-      <option value="${PARTNER_ID}">${PARTNER_NAME}</option>
-    `;
-
-    // Jawaban otomatis memakai identitas akun yang sedang login.
-    answerAuthor.value = MY_ID;
+    answerAuthor.innerHTML =
+      `<option value="me">${escapeHTML(MY_NAME)}</option>`;
+    answerAuthor.value = "me";
+    answerAuthor.disabled = true;
   }
 }
 
 // ==========================================
-// LOGIN SUPABASE
+// LOGIN DAN PASANGAN DI SUPABASE
 // ==========================================
+
+async function initializeCouple() {
+  const { data: membership, error } = await supabaseClient
+    .from("couple_members")
+    .select("couple_id,user_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!membership) {
+    throw new Error(
+      "Akun ini belum terhubung ke pasangan di tabel couple_members. Kita perlu menyiapkan data pasangan di Supabase."
+    );
+  }
+
+  coupleId = membership.couple_id;
+
+  const { data: partner, error: partnerError } = await supabaseClient
+    .from("couple_members")
+    .select("user_id")
+    .eq("couple_id", coupleId)
+    .neq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (partnerError) throw partnerError;
+
+  if (!partner) {
+    throw new Error(
+      "Akun pasangan belum ditemukan di couple_members. Pastikan Aldi dan Liza masuk ke pasangan yang sama."
+    );
+  }
+
+  partnerUserId = partner.user_id;
+}
+
+async function startApp(user) {
+  setAccountNames(user);
+  await initializeCouple();
+
+  $("#login").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+
+  renderDates();
+  await syncAll();
+  await loadQuestion();
+
+  if (syncTimer) clearInterval(syncTimer);
+
+  // Memperbarui data dari server secara berkala.
+  syncTimer = setInterval(() => {
+    if (currentUser && coupleId) syncAll();
+  }, 15000);
+}
+
 $("#login-form").addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -166,40 +201,27 @@ $("#login-form").addEventListener("submit", async event => {
   button.textContent = "Membuka semesta...";
 
   try {
-    const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { data, error } = await supabaseClient.auth
+      .signInWithPassword({ email, password });
 
     if (error) throw error;
 
-    setAccountNames(data.user);
-    openApp();
+    await startApp(data.user);
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login/app error:", error);
 
     $("#login-error").textContent =
-      error.message || "Terjadi kesalahan saat login.";
+      error.message || "Gagal membuka aplikasi.";
   } finally {
     button.disabled = false;
     button.textContent = originalText;
   }
 });
 
-function openApp() {
-  updateNameLabels();
-
-  $("#login").classList.add("hidden");
-  $("#app").classList.remove("hidden");
-
-  renderDates();
-  renderStreak();
-  renderNotes();
-  loadQuestion();
-}
-
 $("#logout").addEventListener("click", async () => {
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = null;
+
   const { error } = await supabaseClient.auth.signOut();
 
   if (error) {
@@ -207,35 +229,35 @@ $("#logout").addEventListener("click", async () => {
     return;
   }
 
+  currentUser = null;
+  coupleId = null;
+  partnerUserId = null;
+  checkinRows = [];
+  notesRows = [];
+  answerRows = [];
+
   $("#app").classList.add("hidden");
   $("#login").classList.remove("hidden");
   $("#login-password").value = "";
   $("#login-error").textContent = "";
-
-  MY_NAME = "Aldi";
-  PARTNER_NAME = "Liza";
-  MY_ID = "aldi";
-  PARTNER_ID = "liza";
 });
 
 async function restoreSession() {
   const { data, error } = await supabaseClient.auth.getSession();
 
   if (error) {
-    console.error("Session error:", error);
+    console.error(error);
     return;
   }
 
   if (data.session) {
     try {
-      setAccountNames(data.session.user);
-      openApp();
+      await startApp(data.session.user);
     } catch (error) {
-      console.error("Account configuration error:", error);
-
+      console.error(error);
+      $("#login-error").textContent =
+        error.message || "Gagal memuat data pasangan.";
       await supabaseClient.auth.signOut();
-
-      $("#login-error").textContent = error.message;
       $("#login").classList.remove("hidden");
       $("#app").classList.add("hidden");
     }
@@ -245,30 +267,22 @@ async function restoreSession() {
 restoreSession();
 
 // ==========================================
-// NAVIGATION
+// NAVIGASI
 // ==========================================
-function showPage(name) {
-  $$(".page").forEach(page => {
-    page.classList.remove("active");
-  });
 
+function showPage(name) {
+  $$(".page").forEach(page => page.classList.remove("active"));
   $(`#page-${name}`)?.classList.add("active");
 
   $$(".nav-button").forEach(button => {
-    button.classList.toggle(
-      "selected",
-      button.dataset.page === name
-    );
+    button.classList.toggle("selected", button.dataset.page === name);
   });
 
-  if (name === "questions") {
-    loadQuestion();
-  }
+  if (name === "questions") loadQuestion();
+  if (name === "streak") renderStreak();
+  if (name === "notes") renderNotes();
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 $$("[data-page]").forEach(button => {
@@ -279,8 +293,9 @@ $$("[data-page]").forEach(button => {
 });
 
 // ==========================================
-// DATE COUNTERS
+// TANGGAL DAN HITUNG MUNDUR
 // ==========================================
+
 function renderDates() {
   const now = new Date();
   const midnight = new Date(today() + "T00:00:00");
@@ -299,10 +314,7 @@ function renderDates() {
   );
 
   let next = new Date(`${now.getFullYear()}-10-08T00:00:00`);
-
-  if (next < midnight) {
-    next.setFullYear(next.getFullYear() + 1);
-  }
+  if (next < midnight) next.setFullYear(next.getFullYear() + 1);
 
   $("#countdown").textContent = Math.round(
     (next - midnight) / 86400000
@@ -310,45 +322,79 @@ function renderDates() {
 }
 
 // ==========================================
-// STREAK
-// Identitas tetap: aldi dan liza
+// SINKRONISASI DATA
 // ==========================================
-function getCheckins() {
-  const data = db.get("olu-checkins", {});
 
-  // Migrasi data demo lama yang memakai nama tampilan.
-  Object.keys(data).forEach(date => {
-    if (!Array.isArray(data[date])) {
-      data[date] = [];
-      return;
+async function syncAll() {
+  if (!currentUser || !coupleId) return;
+
+  try {
+    await Promise.all([
+      fetchCheckins(),
+      fetchNotes()
+    ]);
+
+    renderStreak();
+    renderNotes();
+
+    if (activeQuestionDate) {
+      await fetchAnswers();
+      renderAnswers();
     }
-
-    data[date] = [
-      ...new Set(data[date].map(value => {
-        if (value === "Aldi") return "aldi";
-        if (value === "Partner") return PARTNER_ID;
-        return value;
-      }))
-    ];
-  });
-
-  db.set("olu-checkins", data);
-  return data;
+  } catch (error) {
+    console.error("Sync error:", error);
+  }
 }
 
+async function fetchCheckins() {
+  const { data, error } = await supabaseClient
+    .from("checkins")
+    .select("user_id,checkin_date")
+    .eq("couple_id", coupleId)
+    .order("checkin_date", { ascending: false });
+
+  if (error) throw error;
+  checkinRows = data || [];
+}
+
+async function fetchNotes() {
+  const { data, error } = await supabaseClient
+    .from("notes")
+    .select("id,author_id,body,music_url,created_at")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  notesRows = data || [];
+}
+
+// ==========================================
+// CHECK-IN BERSAMA
+// ==========================================
+
 function streakCount() {
-  const data = getCheckins();
+  const dates = new Set();
+
+  checkinRows.forEach(row => {
+    dates.add(row.checkin_date);
+  });
+
   const d = new Date(today() + "T00:00:00");
   let count = 0;
 
   while (true) {
-    const key =
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-    const names = data[key] || [];
-    const both = names.includes("aldi") && names.includes("liza");
+    const usersToday = new Set(
+      checkinRows
+        .filter(row => row.checkin_date === key)
+        .map(row => row.user_id)
+    );
 
-    if (both) {
+    if (
+      usersToday.has(currentUser.id) &&
+      usersToday.has(partnerUserId)
+    ) {
       count++;
       d.setDate(d.getDate() - 1);
     } else {
@@ -360,14 +406,15 @@ function streakCount() {
 }
 
 function renderStreak() {
-  const data = getCheckins();
-  const names = data[today()] || [];
+  const todayRows = checkinRows.filter(
+    row => row.checkin_date === today()
+  );
 
-  const both =
-    names.includes("aldi") &&
-    names.includes("liza");
-
-  const one = names.length > 0;
+  const checkedIds = new Set(todayRows.map(row => row.user_id));
+  const meChecked = checkedIds.has(currentUser?.id);
+  const partnerChecked = checkedIds.has(partnerUserId);
+  const both = meChecked && partnerChecked;
+  const one = meChecked || partnerChecked;
   const count = streakCount();
 
   $("#home-streak").textContent = count;
@@ -376,7 +423,7 @@ function renderStreak() {
   $("#home-streak-status").textContent = both
     ? "Kalian berdua sudah hadir hari ini! ✨"
     : one
-      ? "Tinggal satu check-in lagi!"
+      ? "Satu check-in lagi untuk menyalakan api bersama!"
       : "Ayo hadir untuk satu sama lain hari ini.";
 
   $("#big-flame").className =
@@ -389,114 +436,91 @@ function renderStreak() {
       : "Api menunggu check-in pertama.";
 
   $$(".person").forEach(button => {
-    const personId =
-      button.dataset.person === "me"
-        ? MY_ID
-        : button.dataset.person === "partner"
-          ? PARTNER_ID
-          : button.dataset.person;
-
-    const checked = names.includes(personId);
+    const isMe = button.dataset.person === "me";
+    const isPartner = button.dataset.person === "partner";
+    const checked = isMe ? meChecked : isPartner ? partnerChecked : false;
 
     button.classList.toggle("checked", checked);
-    button.disabled = checked;
+
+    // Akun hanya boleh check-in untuk dirinya sendiri.
+    button.disabled = !isMe || meChecked;
   });
 
-  const checkedNames = names.map(displayNameForId);
-
   $("#checkin-status").textContent = both
-    ? `${displayNameForId("aldi")} dan ${displayNameForId("liza")} sudah check-in hari ini! ♡`
-    : one
-      ? `${checkedNames.join(" dan ")} sudah check-in.`
-      : "Belum ada yang check-in.";
+    ? `${MY_NAME} dan ${PARTNER_NAME} sudah check-in hari ini! ♡`
+    : meChecked
+      ? `${MY_NAME} sudah check-in. Menunggu ${PARTNER_NAME}.`
+      : partnerChecked
+        ? `${PARTNER_NAME} sudah check-in. Sekarang giliranmu!`
+        : "Belum ada yang check-in hari ini.";
 }
 
 $$(".person").forEach(button => {
-  button.addEventListener("click", () => {
-    const personId =
-      button.dataset.person === "me"
-        ? MY_ID
-        : button.dataset.person === "partner"
-          ? PARTNER_ID
-          : button.dataset.person;
-
-    if (personId !== "aldi" && personId !== "liza") {
+  button.addEventListener("click", async () => {
+    if (button.dataset.person !== "me" || !currentUser || !coupleId) {
       return;
     }
 
-    const data = getCheckins();
-    const names = data[today()] || [];
+    button.disabled = true;
 
-    if (!names.includes(personId)) {
-      names.push(personId);
+    const { error } = await supabaseClient
+      .from("checkins")
+      .insert({
+        couple_id: coupleId,
+        user_id: currentUser.id,
+        checkin_date: today()
+      });
+
+    if (error && error.code !== "23505") {
+      console.error(error);
+      alert("Check-in gagal disimpan. Periksa koneksi dan kebijakan Supabase.");
     }
 
-    data[today()] = names;
-    db.set("olu-checkins", data);
-
+    await fetchCheckins();
     renderStreak();
   });
 });
 
 // ==========================================
-// NOTES
+// CATATAN
 // ==========================================
-function getNotes() {
-  const notes = db.get("olu-notes", []);
-
-  return notes.map(item => {
-    let authorId = item.authorId;
-
-    // Kompatibilitas dengan catatan demo lama.
-    if (!authorId) {
-      if (item.author === "Aldi") {
-        authorId = "aldi";
-      } else if (item.author === "Partner") {
-        authorId = PARTNER_ID;
-      } else {
-        authorId = item.author;
-      }
-    }
-
-    return { ...item, authorId };
-  });
-}
 
 function renderNotes() {
-  const notes = getNotes();
-  const note = notes.find(item => item.date === today());
+  const todaysNote = notesRows.find(
+    item => timestampDate(item.created_at) === today()
+  );
 
-  $("#home-note").textContent = note
-    ? `${displayNameForId(note.authorId)}: ${note.text}`
+  $("#home-note").textContent = todaysNote
+    ? `${displayNameForUser(todaysNote.author_id)}: ${todaysNote.body}`
     : "Belum ada catatan hari ini. Tulis pesan kecil untuk pasanganmu.";
 
-  $("#home-music").innerHTML = note?.music
-    ? `<a href="${escapeHTML(note.music)}" target="_blank" rel="noopener noreferrer">♫ Dengarkan lagu ↗</a>`
+  $("#home-music").innerHTML = todaysNote?.music_url
+    ? `<a href="${escapeHTML(todaysNote.music_url)}" target="_blank" rel="noopener noreferrer">♫ Dengarkan lagu ↗</a>`
     : "";
 
-  $("#notes-list").innerHTML = notes.length
-    ? notes.map(item => `
+  $("#notes-list").innerHTML = notesRows.length
+    ? notesRows.map(item => `
         <article class="note-item">
           <div class="note-meta">
-            ${escapeHTML(displayNameForId(item.authorId))}
-            · ${escapeHTML(dateLabel(item.date))}
+            ${escapeHTML(displayNameForUser(item.author_id))}
+            · ${escapeHTML(dateLabel(timestampDate(item.created_at)))}
           </div>
-          <p>${escapeHTML(item.text)}</p>
-          ${item.music
-            ? `<a href="${escapeHTML(item.music)}" target="_blank" rel="noopener noreferrer">♫ Buka lagu ↗</a>`
+          <p>${escapeHTML(item.body)}</p>
+          ${item.music_url
+            ? `<a href="${escapeHTML(item.music_url)}" target="_blank" rel="noopener noreferrer">♫ Buka lagu ↗</a>`
             : ""}
         </article>
       `).join("")
     : `<p class="muted small">Belum ada catatan. ♡</p>`;
 }
 
-$("#note-form").addEventListener("submit", event => {
+$("#note-form").addEventListener("submit", async event => {
   event.preventDefault();
 
-  const text = $("#note-text").value.trim();
+  const body = $("#note-text").value.trim();
   const music = $("#music-link").value.trim();
 
-  if (!text) return;
+  if (!body || !currentUser || !coupleId) return;
 
   if (
     music &&
@@ -506,63 +530,41 @@ $("#note-form").addEventListener("submit", event => {
     return;
   }
 
-  const authorId = $("#note-author").value;
+  const submitButton = $("#note-form button[type='submit']");
+  if (submitButton) submitButton.disabled = true;
 
-  if (authorId !== MY_ID && authorId !== PARTNER_ID) {
-    alert("Pilih nama penulis yang valid.");
-    return;
+  try {
+    const { error } = await supabaseClient.from("notes").insert({
+      couple_id: coupleId,
+      author_id: currentUser.id,
+      body,
+      music_url: music || null
+    });
+
+    if (error) throw error;
+
+    $("#note-text").value = "";
+    $("#music-link").value = "";
+
+    await fetchNotes();
+    renderNotes();
+  } catch (error) {
+    console.error(error);
+    alert("Catatan gagal disimpan. Periksa kebijakan tabel notes di Supabase.");
+  } finally {
+    if (submitButton) submitButton.disabled = false;
   }
-
-  const notes = getNotes();
-
-  notes.unshift({
-    authorId,
-    text,
-    music,
-    date: today()
-  });
-
-  db.set("olu-notes", notes);
-
-  $("#note-text").value = "";
-  $("#music-link").value = "";
-
-  renderNotes();
 });
 
 // ==========================================
-// DAILY QUESTIONS — CLOUDFLARE AI
+// PERTANYAAN HARIAN DARI CLOUDFLARE AI
 // ==========================================
-let activeQuestionDate = null;
-let questionRequest = null;
-
-function getAnswersForDate(date) {
-  const all = db.get("olu-answers", {});
-  const answers = all[date] || {};
-
-  // Migrasi jawaban demo lama.
-  if (answers.Aldi && !answers.aldi) {
-    answers.aldi = answers.Aldi;
-    delete answers.Aldi;
-  }
-
-  if (answers.Partner && !answers[PARTNER_ID]) {
-    answers[PARTNER_ID] = answers.Partner;
-    delete answers.Partner;
-  }
-
-  all[date] = answers;
-  db.set("olu-answers", all);
-
-  return answers;
-}
 
 async function loadQuestion() {
   if (questionRequest) return questionRequest;
+  if (!currentUser || !coupleId) return;
 
-  $("#daily-question").textContent =
-    "AI sedang membuat pertanyaan... ✨";
-
+  $("#daily-question").textContent = "Memuat pertanyaan hari ini... ✨";
   $("#answers-status").textContent = "Tunggu sebentar ya.";
   $("#answers-reveal").classList.add("hidden");
 
@@ -572,28 +574,56 @@ async function loadQuestion() {
       const result = await response.json();
 
       if (!response.ok || !result.question || !result.date) {
-        throw new Error(
-          result.error || "Gagal mengambil pertanyaan."
-        );
+        throw new Error(result.error || "Pertanyaan belum tersedia.");
       }
 
       activeQuestionDate = result.date;
 
-      $("#question-date").textContent =
-        dateLabel(result.date);
+      let { data: savedQuestion, error: selectError } =
+        await supabaseClient
+          .from("daily_questions")
+          .select("question")
+          .eq("couple_id", coupleId)
+          .eq("question_date", activeQuestionDate)
+          .maybeSingle();
 
+      if (selectError) throw selectError;
+
+      if (!savedQuestion) {
+        const { error: insertError } = await supabaseClient
+          .from("daily_questions")
+          .insert({
+            couple_id: coupleId,
+            question_date: activeQuestionDate,
+            question: result.question
+          });
+
+        if (insertError && insertError.code !== "23505") {
+          throw insertError;
+        }
+
+        const retry = await supabaseClient
+          .from("daily_questions")
+          .select("question")
+          .eq("couple_id", coupleId)
+          .eq("question_date", activeQuestionDate)
+          .maybeSingle();
+
+        if (retry.error) throw retry.error;
+        savedQuestion = retry.data;
+      }
+
+      $("#question-date").textContent = dateLabel(activeQuestionDate);
       $("#daily-question").textContent =
-        result.question;
+        savedQuestion?.question || result.question;
 
+      await fetchAnswers();
       renderAnswers();
     } catch (error) {
-      console.error(error);
-
-      $("#daily-question").textContent =
-        "Pertanyaan belum tersedia.";
-
+      console.error("Question error:", error);
+      $("#daily-question").textContent = "Pertanyaan belum tersedia.";
       $("#answers-status").textContent =
-        "Periksa URL Cloudflare Worker dan coba lagi.";
+        "Gagal memuat pertanyaan atau menyimpan ke Supabase. Periksa kebijakan daily_questions.";
     } finally {
       questionRequest = null;
     }
@@ -602,16 +632,27 @@ async function loadQuestion() {
   return questionRequest;
 }
 
+async function fetchAnswers() {
+  if (!activeQuestionDate || !coupleId) return;
+
+  const { data, error } = await supabaseClient
+    .from("daily_answers")
+    .select("user_id,answer")
+    .eq("couple_id", coupleId)
+    .eq("question_date", activeQuestionDate);
+
+  if (error) throw error;
+  answerRows = data || [];
+}
+
 function renderAnswers() {
-  if (!activeQuestionDate) return;
+  if (!activeQuestionDate || !currentUser) return;
 
-  const answers = getAnswersForDate(activeQuestionDate);
+  const myRow = answerRows.find(row => row.user_id === currentUser.id);
+  const partnerRow = answerRows.find(row => row.user_id === partnerUserId);
 
-  const myAnswer = answers[MY_ID];
-  const partnerAnswer = answers[PARTNER_ID];
-
-  const both = Boolean(myAnswer && partnerAnswer);
-  const one = Boolean(myAnswer || partnerAnswer);
+  const both = Boolean(myRow && partnerRow);
+  const one = Boolean(myRow || partnerRow);
 
   $("#answers-status").textContent = both
     ? "Kalian berdua sudah menjawab! Baca jawaban kalian di bawah ♡"
@@ -623,15 +664,15 @@ function renderAnswers() {
 
   $("#answers-reveal").innerHTML = both
     ? `
-        <div class="answer-item">
-          <strong>${escapeHTML(displayNameForId(MY_ID))}</strong>
-          <p>${escapeHTML(myAnswer)}</p>
-        </div>
-        <div class="answer-item">
-          <strong>${escapeHTML(displayNameForId(PARTNER_ID))}</strong>
-          <p>${escapeHTML(partnerAnswer)}</p>
-        </div>
-      `
+      <div class="answer-item">
+        <strong>${escapeHTML(MY_NAME)}</strong>
+        <p>${escapeHTML(myRow.answer)}</p>
+      </div>
+      <div class="answer-item">
+        <strong>${escapeHTML(PARTNER_NAME)}</strong>
+        <p>${escapeHTML(partnerRow.answer)}</p>
+      </div>
+    `
     : "";
 }
 
@@ -640,7 +681,7 @@ $("#refresh-question").addEventListener("click", () => {
   loadQuestion();
 });
 
-$("#submit-answer").addEventListener("click", () => {
+$("#submit-answer").addEventListener("click", async () => {
   const answer = $("#answer-text").value.trim();
 
   if (!activeQuestionDate) {
@@ -653,29 +694,45 @@ $("#submit-answer").addEventListener("click", () => {
     return;
   }
 
-  // Identitas penjawab mengikuti akun yang sedang login.
-  const author = MY_ID;
-  const answers = getAnswersForDate(activeQuestionDate);
+  const alreadyAnswered = answerRows.some(
+    row => row.user_id === currentUser.id
+  );
 
-  if (answers[author]) {
+  if (alreadyAnswered) {
     alert("Kamu sudah menjawab pertanyaan hari ini.");
     return;
   }
 
-  answers[author] = answer;
+  const button = $("#submit-answer");
+  button.disabled = true;
 
-  const all = db.get("olu-answers", {});
-  all[activeQuestionDate] = answers;
+  try {
+    const { error } = await supabaseClient
+      .from("daily_answers")
+      .insert({
+        couple_id: coupleId,
+        question_date: activeQuestionDate,
+        user_id: currentUser.id,
+        answer
+      });
 
-  db.set("olu-answers", all);
+    if (error) throw error;
 
-  $("#answer-text").value = "";
-  renderAnswers();
+    $("#answer-text").value = "";
+    await fetchAnswers();
+    renderAnswers();
+  } catch (error) {
+    console.error(error);
+    alert("Jawaban gagal disimpan. Pastikan pertanyaan sudah ada di Supabase dan kebijakan daily_answers benar.");
+  } finally {
+    button.disabled = false;
+  }
 });
 
 // ==========================================
-// SETTINGS
+// PENGATURAN TAMPILAN — LOKAL PER PERANGKAT
 // ==========================================
+
 function applySettings(settings) {
   document.body.classList.remove("theme-rose", "theme-blue");
 
@@ -690,7 +747,6 @@ function applySettings(settings) {
   if (settings.wallpaper) {
     document.body.style.backgroundImage =
       `linear-gradient(#100d1bdc,#100d1bf2),url("${settings.wallpaper.replace(/["\\]/g, "")}")`;
-
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundAttachment = "fixed";
     document.body.style.backgroundPosition = "center";
@@ -699,11 +755,10 @@ function applySettings(settings) {
   }
 }
 
-const settings = db.get("olu-settings", {});
+const settings = localDB.get("olu-settings", {});
 
 $("#theme").value = settings.theme || "purple";
 $("#wallpaper").value = settings.wallpaper || "";
-
 applySettings(settings);
 
 $("#save-settings").addEventListener("click", () => {
@@ -719,8 +774,14 @@ $("#save-settings").addEventListener("click", () => {
     wallpaper
   };
 
-  db.set("olu-settings", next);
+  localDB.set("olu-settings", next);
   applySettings(next);
-
   alert("Tampilan berhasil disimpan! ✨");
+});
+
+// Segarkan data saat pengguna kembali ke tab.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && currentUser && coupleId) {
+    syncAll();
+  }
 });
