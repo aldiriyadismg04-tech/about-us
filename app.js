@@ -474,8 +474,83 @@ $$(".person").forEach(button => {
 });
 
 // ==========================================
-// CATATAN
+// CATATAN + SPOTIFY EMBED
 // ==========================================
+
+function spotifyEmbedUrl(value) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+
+    if (
+      url.protocol !== "https:" ||
+      !["open.spotify.com", "www.open.spotify.com"].includes(url.hostname)
+    ) {
+      return null;
+    }
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    const allowedTypes = ["track", "album", "playlist", "episode", "show"];
+    const typeIndex = parts.findIndex(part => allowedTypes.includes(part));
+
+    if (typeIndex === -1 || !parts[typeIndex + 1]) return null;
+
+    const type = parts[typeIndex];
+    const id = parts[typeIndex + 1];
+
+    if (!/^[a-zA-Z0-9]+$/.test(id)) return null;
+
+    return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+  } catch {
+    return null;
+  }
+}
+
+function renderSpotifyCard(value) {
+  if (!value) return "";
+
+  const embedUrl = spotifyEmbedUrl(value);
+  const safeUrl = escapeHTML(value);
+
+  if (!embedUrl) {
+    return `
+      <div class="spotify-card">
+        <div class="spotify-card-label">♫ OUR SONG</div>
+        <p class="spotify-card-description">
+          Dengarkan lagu pilihan kalian di Spotify.
+        </p>
+        <a href="${safeUrl}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="spotify-open-link">
+          ♫ Buka lagu di Spotify ↗
+        </a>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="spotify-card">
+      <div class="spotify-card-label">♫ OUR SONG</div>
+      <iframe
+        class="spotify-embed"
+        src="${escapeHTML(embedUrl)}"
+        title="Pemutar Spotify"
+        loading="lazy"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen>
+      </iframe>
+      <a href="${safeUrl}"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="spotify-open-link">
+        Buka di aplikasi Spotify ↗
+      </a>
+    </div>
+  `;
+}
 
 function renderNotes() {
   const todaysNote = notesRows.find(
@@ -487,7 +562,7 @@ function renderNotes() {
     : "Belum ada catatan hari ini. Tulis pesan kecil untuk pasanganmu.";
 
   $("#home-music").innerHTML = todaysNote?.music_url
-    ? `<a href="${escapeHTML(todaysNote.music_url)}" target="_blank" rel="noopener noreferrer">♫ Dengarkan lagu ↗</a>`
+    ? renderSpotifyCard(todaysNote.music_url)
     : "";
 
   $("#notes-list").innerHTML = notesRows.length
@@ -498,9 +573,7 @@ function renderNotes() {
             · ${escapeHTML(dateLabel(timestampDate(item.created_at)))}
           </div>
           <p>${escapeHTML(item.body)}</p>
-          ${item.music_url
-            ? `<a href="${escapeHTML(item.music_url)}" target="_blank" rel="noopener noreferrer">♫ Buka lagu ↗</a>`
-            : ""}
+          ${renderSpotifyCard(item.music_url)}
         </article>
       `).join("")
     : `<p class="muted small">Belum ada catatan. ♡</p>`;
@@ -562,7 +635,6 @@ async function loadQuestion() {
 
   questionRequest = (async () => {
     try {
-      // LANGKAH 1: Meminta pertanyaan dari Cloudflare Worker.
       let response;
 
       try {
@@ -591,7 +663,6 @@ async function loadQuestion() {
 
       activeQuestionDate = result.date;
 
-      // LANGKAH 2: Mencari pertanyaan yang sudah tersimpan di Supabase.
       const { data: savedQuestion, error: selectError } =
         await supabaseClient
           .from("daily_questions")
@@ -608,7 +679,6 @@ async function loadQuestion() {
 
       let finalQuestion = savedQuestion?.question;
 
-      // LANGKAH 3: Jika belum ada, simpan pertanyaan ke Supabase.
       if (!finalQuestion) {
         const { error: insertError } = await supabaseClient
           .from("daily_questions")
@@ -626,7 +696,6 @@ async function loadQuestion() {
           );
         }
 
-        // Baca ulang setelah menyimpan atau jika data sudah dibuat akun pasangan.
         const retry = await supabaseClient
           .from("daily_questions")
           .select("question")
@@ -643,12 +712,9 @@ async function loadQuestion() {
         finalQuestion = retry.data?.question || result.question;
       }
 
-      // LANGKAH 4: Tampilkan pertanyaan.
       $("#question-date").textContent = dateLabel(activeQuestionDate);
       $("#daily-question").textContent = finalQuestion;
 
-      // Error jawaban ditangani terpisah supaya tidak disalahartikan
-      // sebagai kegagalan menyimpan pertanyaan.
       try {
         await fetchAnswers();
         renderAnswers();
@@ -657,7 +723,6 @@ async function loadQuestion() {
         $("#answers-status").textContent =
           `Pertanyaan berhasil dimuat, tetapi jawaban gagal dibaca: ${answerError.message || "Kesalahan tidak diketahui."}`;
       }
-
     } catch (error) {
       console.error("Question error:", error);
       $("#daily-question").textContent = "Pertanyaan belum tersedia.";
