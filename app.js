@@ -897,15 +897,19 @@ $("#submit-answer")?.addEventListener("click", async () => {
 });
 
 // ==========================================
-// LUMI — HEWAN PELIHARAAN BERSAMA
+// LUMI — PIXEL CAT PET
 // ==========================================
+
+let lumiAction = "idle";
+let lumiActionTimer = null;
+let lumiSleepTimer = null;
+let lumiIsSleeping = false;
 
 async function ensurePet() {
   const { error: insertError } = await supabaseClient
     .from("shared_pets")
     .insert({ couple_id: coupleId });
 
-  // 23505 means Lumi already exists for this couple.
   if (insertError && insertError.code !== "23505") {
     throw insertError;
   }
@@ -933,7 +937,7 @@ function renderPet() {
   const expIntoLevel = exp % 100;
 
   setText("#lumi-name", petRow.name || "Lumi");
-  setText("#lumi-level", `Lv. ${level}`);
+  setText("#lumi-level", level);
   setText("#lumi-exp", `${expIntoLevel}/100 EXP`);
   setText("#lumi-hunger-text", `${hunger}/100`);
   setText("#lumi-happiness-text", `${happiness}/100`);
@@ -948,36 +952,108 @@ function renderPet() {
   if (happinessBar) happinessBar.style.width = `${happiness}%`;
 
   const sprite = $("#lumi-sprite");
+  const stage = $("#lumi-stage");
+
   if (sprite) {
-    sprite.textContent = happiness < 25
-      ? "🥺"
-      : hunger < 25
-        ? "🐣"
-        : level >= 10
-          ? "🐉"
-          : level >= 5
-            ? "🐱"
-            : "🐰";
+    sprite.classList.toggle("is-sleeping", lumiIsSleeping);
+    sprite.classList.toggle("is-eating", lumiAction === "eating");
+    sprite.classList.toggle("is-playing", lumiAction === "playing");
+    sprite.classList.toggle("is-hungry", hunger < 25);
+    sprite.classList.toggle("is-sad", happiness < 25);
+    sprite.classList.toggle("is-happy", lumiAction === "playing");
+
+    sprite.setAttribute("aria-pressed", String(lumiIsSleeping));
+    sprite.setAttribute(
+      "aria-label",
+      lumiIsSleeping
+        ? "Bangunkan Lumi"
+        : "Ketuk untuk menidurkan Lumi"
+    );
   }
 
-  setText("#lumi-status",
-    hunger < 25
-      ? "Lumi mulai lapar. Siapa yang mau memberinya makan? ♡"
-      : happiness < 25
-        ? "Lumi ingin ditemani bermain."
-        : "Lumi senang karena kalian merawatnya bersama! ♡"
+  if (stage) {
+    stage.classList.toggle("is-sleeping", lumiIsSleeping);
+  }
+
+  if (lumiIsSleeping) {
+    setText("#lumi-status", "Zzz... Lumi sedang tidur nyenyak 🌙");
+  } else if (lumiAction === "eating") {
+    setText("#lumi-status", "Nyam nyam! Terima kasih makanannya 🍓");
+  } else if (lumiAction === "playing") {
+    setText("#lumi-status", "Yeay! Lumi senang bermain denganmu! ♡");
+  } else if (hunger < 25) {
+    setText("#lumi-status", "Meong... Lumi mulai lapar 🍓");
+  } else if (happiness < 25) {
+    setText("#lumi-status", "Lumi ingin ditemani bermain 💗");
+  } else if (level >= 10) {
+    setText("#lumi-status", "Lumi tumbuh semakin hebat! ✨");
+  } else {
+    setText("#lumi-status", "Lumi senang kalian merawatnya bersama ♡");
+  }
+}
+
+function setLumiAction(action, duration = 2200) {
+  clearTimeout(lumiActionTimer);
+
+  lumiAction = action;
+  renderPet();
+
+  if (action === "idle") return;
+
+  lumiActionTimer = setTimeout(() => {
+    lumiAction = "idle";
+    renderPet();
+  }, duration);
+}
+
+function toggleLumiSleep() {
+  if (!currentUser || !petRow) return;
+
+  clearTimeout(lumiActionTimer);
+  clearTimeout(lumiSleepTimer);
+
+  lumiIsSleeping = !lumiIsSleeping;
+  lumiAction = "idle";
+
+  setStatus(
+    "#lumi-action-status",
+    lumiIsSleeping
+      ? "Lumi mulai tidur. Selamat istirahat, Lumi 🌙"
+      : "Lumi sudah bangun kembali! ♡"
   );
+
+  renderPet();
+
+  if (lumiIsSleeping) {
+    // Lumi bangun otomatis setelah 10 detik.
+    lumiSleepTimer = setTimeout(() => {
+      lumiIsSleeping = false;
+      lumiAction = "idle";
+      setStatus("#lumi-action-status", "Lumi sudah bangun kembali ♡");
+      renderPet();
+    }, 10000);
+  }
 }
 
 async function careForLumi(actionType) {
   if (!currentUser || !coupleId || petActionBusy) return;
 
+  if (!["feed", "play"].includes(actionType)) return;
+
+  if (lumiIsSleeping) {
+    setStatus("#lumi-action-status", "Bangunkan Lumi dulu ya 🌙");
+    return;
+  }
+
   const feedButton = $("#lumi-feed");
   const playButton = $("#lumi-play");
 
   petActionBusy = true;
+
   if (feedButton) feedButton.disabled = true;
   if (playButton) playButton.disabled = true;
+
+  setLumiAction(actionType === "feed" ? "eating" : "playing");
 
   try {
     const { data, error } = await supabaseClient.rpc("care_for_lumi", {
@@ -988,31 +1064,46 @@ async function careForLumi(actionType) {
     if (error) throw error;
 
     petRow = Array.isArray(data) ? data[0] : data;
+
     if (!petRow) {
       await ensurePet();
     } else {
       renderPet();
     }
 
-    setStatus("#lumi-action-status",
+    setStatus(
+      "#lumi-action-status",
       actionType === "feed"
         ? `${MY_NAME} memberi Lumi makan. +5 EXP ✨`
         : `${MY_NAME} bermain bersama Lumi. +10 EXP ✨`
     );
   } catch (error) {
     console.error("Lumi action error:", error);
-    setStatus("#lumi-action-status",
+
+    setStatus(
+      "#lumi-action-status",
       `Aksi gagal: ${error.message || "Coba lagi nanti."}`
     );
+
+    lumiAction = "idle";
+    renderPet();
   } finally {
     petActionBusy = false;
+
     if (feedButton) feedButton.disabled = false;
     if (playButton) playButton.disabled = false;
   }
 }
 
-$("#lumi-feed")?.addEventListener("click", () => careForLumi("feed"));
-$("#lumi-play")?.addEventListener("click", () => careForLumi("play"));
+$("#lumi-feed")?.addEventListener("click", () => {
+  careForLumi("feed");
+});
+
+$("#lumi-play")?.addEventListener("click", () => {
+  careForLumi("play");
+});
+
+$("#lumi-sprite")?.addEventListener("click", toggleLumiSleep);
 
 // ==========================================
 // MOOD HARIAN
@@ -1225,7 +1316,6 @@ function renderChallenge() {
 
   if (partnerButton) {
     partnerButton.classList.toggle("completed", partnerDone);
-    // A user's browser must not mark the partner's challenge complete.
     partnerButton.disabled = true;
     partnerButton.innerHTML = `
       <strong>${escapeHTML(PARTNER_NAME)}</strong>
