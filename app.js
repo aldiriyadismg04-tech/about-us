@@ -29,10 +29,18 @@ let PARTNER_NAME = "Liza";
 let activeQuestionDate = null;
 let questionRequest = null;
 let syncTimer = null;
+let petActionBusy = false;
+let moodBusy = false;
+let challengeBusy = false;
+let wrappedPeriod = "week";
 
 let checkinRows = [];
 let notesRows = [];
 let answerRows = [];
+let petRow = null;
+let moodRows = [];
+let challengeRow = null;
+let challengeCompletionRows = [];
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
@@ -47,7 +55,11 @@ const localDB = {
     }
   },
   set(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.warn("Local settings could not be saved:", error);
+    }
   }
 };
 
@@ -76,6 +88,12 @@ function dateLabel(value) {
 
 function timestampDate(value) {
   const d = new Date(value);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function shiftDate(dateString, days) {
+  const d = new Date(dateString + "T12:00:00");
+  d.setDate(d.getDate() + days);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -126,6 +144,20 @@ function updateNameLabels() {
     answerAuthor.value = "me";
     answerAuthor.disabled = true;
   }
+}
+
+function setText(selector, value) {
+  const el = $(selector);
+  if (el) el.textContent = value;
+}
+
+function setHTML(selector, value) {
+  const el = $(selector);
+  if (el) el.innerHTML = value;
+}
+
+function setStatus(selector, message) {
+  setText(selector, message);
 }
 
 // ==========================================
@@ -229,9 +261,14 @@ $("#logout").addEventListener("click", async () => {
   coupleId = null;
   partnerUserId = null;
   activeQuestionDate = null;
+  questionRequest = null;
   checkinRows = [];
   notesRows = [];
   answerRows = [];
+  petRow = null;
+  moodRows = [];
+  challengeRow = null;
+  challengeCompletionRows = [];
 
   $("#app").classList.add("hidden");
   $("#login").classList.remove("hidden");
@@ -279,6 +316,12 @@ function showPage(name) {
   if (name === "streak") renderStreak();
   if (name === "notes") renderNotes();
 
+  if (name === "activity") {
+    loadActivity().catch(error => {
+      console.error("Activity loading error:", error);
+    });
+  }
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -298,24 +341,24 @@ function renderDates() {
   const midnight = new Date(today() + "T00:00:00");
   const start = new Date(ANNIVERSARY + "T00:00:00");
 
-  $("#today-date").textContent = now.toLocaleDateString("id-ID", {
+  setText("#today-date", now.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric"
-  });
+  }));
 
-  $("#days").textContent = Math.max(
+  setText("#days", Math.max(
     0,
     Math.floor((midnight - start) / 86400000)
-  );
+  ));
 
   let next = new Date(`${now.getFullYear()}-10-08T00:00:00`);
   if (next < midnight) next.setFullYear(next.getFullYear() + 1);
 
-  $("#countdown").textContent = Math.round(
+  setText("#countdown", Math.round(
     (next - midnight) / 86400000
-  );
+  ));
 }
 
 // ==========================================
@@ -335,8 +378,16 @@ async function syncAll() {
     renderNotes();
 
     if (activeQuestionDate) {
-      await fetchAnswers();
-      renderAnswers();
+      try {
+        await fetchAnswers();
+        renderAnswers();
+      } catch (error) {
+        console.error("Answer sync error:", error);
+      }
+    }
+
+    if ($("#page-activity")?.classList.contains("active")) {
+      await loadActivity();
     }
   } catch (error) {
     console.error("Sync error:", error);
@@ -397,34 +448,41 @@ function streakCount() {
 }
 
 function renderStreak() {
+  if (!currentUser) return;
+
   const todayRows = checkinRows.filter(
     row => row.checkin_date === today()
   );
 
   const checkedIds = new Set(todayRows.map(row => row.user_id));
-  const meChecked = checkedIds.has(currentUser?.id);
+  const meChecked = checkedIds.has(currentUser.id);
   const partnerChecked = checkedIds.has(partnerUserId);
   const both = meChecked && partnerChecked;
   const one = meChecked || partnerChecked;
   const count = streakCount();
 
-  $("#home-streak").textContent = count;
-  $("#streak-count").textContent = count;
+  setText("#home-streak", count);
+  setText("#streak-count", count);
 
-  $("#home-streak-status").textContent = both
+  setText("#home-streak-status", both
     ? "Kalian berdua sudah hadir hari ini! ✨"
     : one
       ? "Satu check-in lagi untuk menyalakan api bersama!"
-      : "Ayo hadir untuk satu sama lain hari ini.";
+      : "Ayo hadir untuk satu sama lain hari ini."
+  );
 
-  $("#big-flame").className =
-    "flame " + (both ? "lit" : one ? "partial" : "dim");
+  const flame = $("#big-flame");
+  if (flame) {
+    flame.className =
+      "flame " + (both ? "lit" : one ? "partial" : "dim");
+  }
 
-  $("#streak-message").textContent = both
+  setText("#streak-message", both
     ? "Api kita menyala terang! ♡"
     : one
       ? "Satu orang sudah check-in."
-      : "Api menunggu check-in pertama.";
+      : "Api menunggu check-in pertama."
+  );
 
   $$(".person").forEach(button => {
     const isMe = button.dataset.person === "me";
@@ -435,13 +493,14 @@ function renderStreak() {
     button.disabled = !isMe || meChecked;
   });
 
-  $("#checkin-status").textContent = both
+  setText("#checkin-status", both
     ? `${MY_NAME} dan ${PARTNER_NAME} sudah check-in hari ini! ♡`
     : meChecked
       ? `${MY_NAME} sudah check-in. Menunggu ${PARTNER_NAME}.`
       : partnerChecked
         ? `${PARTNER_NAME} sudah check-in. Sekarang giliranmu!`
-        : "Belum ada yang check-in hari ini.";
+        : "Belum ada yang check-in hari ini."
+  );
 }
 
 $$(".person").forEach(button => {
@@ -518,13 +577,11 @@ function renderSpotifyCard(value) {
       <div class="spotify-card">
         <div class="spotify-card-label">♫ OUR SONG</div>
         <p class="spotify-card-description">
-          Dengarkan lagu pilihan kalian di Spotify.
+          Dengarkan lagu pilihan kalian.
         </p>
-        <a href="${safeUrl}"
-           target="_blank"
-           rel="noopener noreferrer"
+        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
            class="spotify-open-link">
-          ♫ Buka lagu di Spotify ↗
+          ♫ Buka lagu ↗
         </a>
       </div>
     `;
@@ -533,8 +590,7 @@ function renderSpotifyCard(value) {
   return `
     <div class="spotify-card">
       <div class="spotify-card-label">♫ OUR SONG</div>
-      <iframe
-        class="spotify-embed"
+      <iframe class="spotify-embed"
         src="${escapeHTML(embedUrl)}"
         title="Pemutar Spotify"
         loading="lazy"
@@ -542,9 +598,7 @@ function renderSpotifyCard(value) {
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen>
       </iframe>
-      <a href="${safeUrl}"
-         target="_blank"
-         rel="noopener noreferrer"
+      <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
          class="spotify-open-link">
         Buka di aplikasi Spotify ↗
       </a>
@@ -553,19 +607,23 @@ function renderSpotifyCard(value) {
 }
 
 function renderNotes() {
+  if (!currentUser) return;
+
   const todaysNote = notesRows.find(
     item => timestampDate(item.created_at) === today()
   );
 
-  $("#home-note").textContent = todaysNote
+  setText("#home-note", todaysNote
     ? `${displayNameForUser(todaysNote.author_id)}: ${todaysNote.body}`
-    : "Belum ada catatan hari ini. Tulis pesan kecil untuk pasanganmu.";
+    : "Belum ada catatan hari ini. Tulis pesan kecil untuk pasanganmu."
+  );
 
-  $("#home-music").innerHTML = todaysNote?.music_url
+  setHTML("#home-music", todaysNote?.music_url
     ? renderSpotifyCard(todaysNote.music_url)
-    : "";
+    : ""
+  );
 
-  $("#notes-list").innerHTML = notesRows.length
+  setHTML("#notes-list", notesRows.length
     ? notesRows.map(item => `
         <article class="note-item">
           <div class="note-meta">
@@ -576,10 +634,11 @@ function renderNotes() {
           ${renderSpotifyCard(item.music_url)}
         </article>
       `).join("")
-    : `<p class="muted small">Belum ada catatan. ♡</p>`;
+    : `<p class="muted small">Belum ada catatan. ♡</p>`
+  );
 }
 
-$("#note-form").addEventListener("submit", async event => {
+$("#note-form")?.addEventListener("submit", async event => {
   event.preventDefault();
 
   const body = $("#note-text").value.trim();
@@ -629,9 +688,9 @@ async function loadQuestion() {
   if (questionRequest) return questionRequest;
   if (!currentUser || !coupleId) return;
 
-  $("#daily-question").textContent = "Memuat pertanyaan hari ini... ✨";
-  $("#answers-status").textContent = "Tunggu sebentar ya.";
-  $("#answers-reveal").classList.add("hidden");
+  setText("#daily-question", "Memuat pertanyaan hari ini... ✨");
+  setText("#answers-status", "Tunggu sebentar ya.");
+  $("#answers-reveal")?.classList.add("hidden");
 
   questionRequest = (async () => {
     try {
@@ -690,9 +749,7 @@ async function loadQuestion() {
 
         if (insertError && insertError.code !== "23505") {
           throw new Error(
-            `Gagal menyimpan daily_questions. Kode: ${insertError.code || "-"}. ${insertError.message}` +
-            (insertError.details ? ` Detail: ${insertError.details}` : "") +
-            (insertError.hint ? ` Petunjuk: ${insertError.hint}` : "")
+            `Gagal menyimpan daily_questions. Kode: ${insertError.code || "-"}. ${insertError.message}`
           );
         }
 
@@ -705,29 +762,31 @@ async function loadQuestion() {
 
         if (retry.error) {
           throw new Error(
-            `Pertanyaan dikirim, tetapi gagal dibaca ulang. Kode: ${retry.error.code || "-"}. ${retry.error.message}`
+            `Gagal membaca ulang pertanyaan. ${retry.error.message}`
           );
         }
 
         finalQuestion = retry.data?.question || result.question;
       }
 
-      $("#question-date").textContent = dateLabel(activeQuestionDate);
-      $("#daily-question").textContent = finalQuestion;
+      setText("#question-date", dateLabel(activeQuestionDate));
+      setText("#daily-question", finalQuestion);
 
       try {
         await fetchAnswers();
         renderAnswers();
       } catch (answerError) {
         console.error("Daily answers error:", answerError);
-        $("#answers-status").textContent =
-          `Pertanyaan berhasil dimuat, tetapi jawaban gagal dibaca: ${answerError.message || "Kesalahan tidak diketahui."}`;
+        setText("#answers-status",
+          `Pertanyaan berhasil dimuat, tetapi jawaban gagal dibaca: ${answerError.message || "Kesalahan tidak diketahui."}`
+        );
       }
     } catch (error) {
       console.error("Question error:", error);
-      $("#daily-question").textContent = "Pertanyaan belum tersedia.";
-      $("#answers-status").textContent =
-        `Penyebab: ${error.message || "Kesalahan tidak diketahui."}`;
+      setText("#daily-question", "Pertanyaan belum tersedia.");
+      setText("#answers-status",
+        `Penyebab: ${error.message || "Kesalahan tidak diketahui."}`
+      );
     } finally {
       questionRequest = null;
     }
@@ -758,15 +817,16 @@ function renderAnswers() {
   const both = Boolean(myRow && partnerRow);
   const one = Boolean(myRow || partnerRow);
 
-  $("#answers-status").textContent = both
+  setText("#answers-status", both
     ? "Kalian berdua sudah menjawab! Baca jawaban kalian di bawah ♡"
     : one
       ? "Satu jawaban tersimpan. Jawaban terbuka setelah keduanya menjawab."
-      : "Belum ada jawaban hari ini.";
+      : "Belum ada jawaban hari ini."
+  );
 
-  $("#answers-reveal").classList.toggle("hidden", !both);
+  $("#answers-reveal")?.classList.toggle("hidden", !both);
 
-  $("#answers-reveal").innerHTML = both
+  setHTML("#answers-reveal", both
     ? `
       <div class="answer-item">
         <strong>${escapeHTML(MY_NAME)}</strong>
@@ -777,15 +837,16 @@ function renderAnswers() {
         <p>${escapeHTML(partnerRow.answer)}</p>
       </div>
     `
-    : "";
+    : ""
+  );
 }
 
-$("#refresh-question").addEventListener("click", () => {
+$("#refresh-question")?.addEventListener("click", () => {
   questionRequest = null;
   loadQuestion();
 });
 
-$("#submit-answer").addEventListener("click", async () => {
+$("#submit-answer")?.addEventListener("click", async () => {
   const answer = $("#answer-text").value.trim();
 
   if (!activeQuestionDate) {
@@ -836,6 +897,627 @@ $("#submit-answer").addEventListener("click", async () => {
 });
 
 // ==========================================
+// LUMI — HEWAN PELIHARAAN BERSAMA
+// ==========================================
+
+async function ensurePet() {
+  const { error: insertError } = await supabaseClient
+    .from("shared_pets")
+    .insert({ couple_id: coupleId });
+
+  // 23505 means Lumi already exists for this couple.
+  if (insertError && insertError.code !== "23505") {
+    throw insertError;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("shared_pets")
+    .select("couple_id,name,level,exp,hunger,happiness,updated_at")
+    .eq("couple_id", coupleId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("Data Lumi belum tersedia.");
+
+  petRow = data;
+  renderPet();
+}
+
+function renderPet() {
+  if (!petRow) return;
+
+  const hunger = Math.max(0, Math.min(100, Number(petRow.hunger) || 0));
+  const happiness = Math.max(0, Math.min(100, Number(petRow.happiness) || 0));
+  const level = Math.max(1, Number(petRow.level) || 1);
+  const exp = Math.max(0, Number(petRow.exp) || 0);
+  const expIntoLevel = exp % 100;
+
+  setText("#lumi-name", petRow.name || "Lumi");
+  setText("#lumi-level", `Lv. ${level}`);
+  setText("#lumi-exp", `${expIntoLevel}/100 EXP`);
+  setText("#lumi-hunger-text", `${hunger}/100`);
+  setText("#lumi-happiness-text", `${happiness}/100`);
+
+  const expBar = $("#lumi-exp-bar");
+  if (expBar) expBar.style.width = `${expIntoLevel}%`;
+
+  const hungerBar = $("#lumi-hunger-bar");
+  if (hungerBar) hungerBar.style.width = `${hunger}%`;
+
+  const happinessBar = $("#lumi-happiness-bar");
+  if (happinessBar) happinessBar.style.width = `${happiness}%`;
+
+  const sprite = $("#lumi-sprite");
+  if (sprite) {
+    sprite.textContent = happiness < 25
+      ? "🥺"
+      : hunger < 25
+        ? "🐣"
+        : level >= 10
+          ? "🐉"
+          : level >= 5
+            ? "🐱"
+            : "🐰";
+  }
+
+  setText("#lumi-status",
+    hunger < 25
+      ? "Lumi mulai lapar. Siapa yang mau memberinya makan? ♡"
+      : happiness < 25
+        ? "Lumi ingin ditemani bermain."
+        : "Lumi senang karena kalian merawatnya bersama! ♡"
+  );
+}
+
+async function careForLumi(actionType) {
+  if (!currentUser || !coupleId || petActionBusy) return;
+
+  const feedButton = $("#lumi-feed");
+  const playButton = $("#lumi-play");
+
+  petActionBusy = true;
+  if (feedButton) feedButton.disabled = true;
+  if (playButton) playButton.disabled = true;
+
+  try {
+    const { data, error } = await supabaseClient.rpc("care_for_lumi", {
+      cid: coupleId,
+      action_type: actionType
+    });
+
+    if (error) throw error;
+
+    petRow = Array.isArray(data) ? data[0] : data;
+    if (!petRow) {
+      await ensurePet();
+    } else {
+      renderPet();
+    }
+
+    setStatus("#lumi-action-status",
+      actionType === "feed"
+        ? `${MY_NAME} memberi Lumi makan. +5 EXP ✨`
+        : `${MY_NAME} bermain bersama Lumi. +10 EXP ✨`
+    );
+  } catch (error) {
+    console.error("Lumi action error:", error);
+    setStatus("#lumi-action-status",
+      `Aksi gagal: ${error.message || "Coba lagi nanti."}`
+    );
+  } finally {
+    petActionBusy = false;
+    if (feedButton) feedButton.disabled = false;
+    if (playButton) playButton.disabled = false;
+  }
+}
+
+$("#lumi-feed")?.addEventListener("click", () => careForLumi("feed"));
+$("#lumi-play")?.addEventListener("click", () => careForLumi("play"));
+
+// ==========================================
+// MOOD HARIAN
+// ==========================================
+
+const MOOD_INFO = {
+  happy: { label: "Bahagia", emoji: "😊" },
+  calm: { label: "Tenang", emoji: "🌿" },
+  loved: { label: "Merasa dicintai", emoji: "💗" },
+  tired: { label: "Lelah", emoji: "🥹" },
+  sad: { label: "Sedih", emoji: "🌧️" },
+  miss: { label: "Merindukanmu", emoji: "💌" }
+};
+
+async function fetchMoods() {
+  const { data, error } = await supabaseClient
+    .from("daily_moods")
+    .select("user_id,mood,mood_date")
+    .eq("couple_id", coupleId)
+    .eq("mood_date", today());
+
+  if (error) throw error;
+  moodRows = data || [];
+  renderMoods();
+}
+
+function renderMoods() {
+  const myMood = moodRows.find(row => row.user_id === currentUser?.id);
+  const partnerMood = moodRows.find(row => row.user_id === partnerUserId);
+
+  $$(".mood-button[data-mood]").forEach(button => {
+    const selected = myMood?.mood === button.dataset.mood;
+    button.classList.toggle("selected", Boolean(selected));
+    button.setAttribute("aria-pressed", String(Boolean(selected)));
+    button.disabled = moodBusy;
+  });
+
+  const renderPersonMood = (name, row) => {
+    const info = row ? MOOD_INFO[row.mood] : null;
+    return `
+      <div class="couple-mood-item">
+        <strong>${escapeHTML(name)}</strong>
+        <span>${info ? `${info.emoji} ${escapeHTML(info.label)}` : "Belum memilih mood"}</span>
+      </div>
+    `;
+  };
+
+  setHTML("#couple-moods",
+    renderPersonMood(MY_NAME, myMood) +
+    renderPersonMood(PARTNER_NAME, partnerMood)
+  );
+
+  setStatus("#mood-status", myMood
+    ? "Mood kamu hari ini sudah tersimpan ♡"
+    : "Pilih satu mood yang paling menggambarkan harimu."
+  );
+}
+
+async function saveMood(mood) {
+  if (!currentUser || !coupleId || moodBusy || !MOOD_INFO[mood]) return;
+
+  moodBusy = true;
+  $$(".mood-button[data-mood]").forEach(button => {
+    button.disabled = true;
+  });
+
+  setStatus("#mood-status", "Menyimpan mood...");
+
+  try {
+    const { error } = await supabaseClient
+      .from("daily_moods")
+      .upsert({
+        couple_id: coupleId,
+        mood_date: today(),
+        user_id: currentUser.id,
+        mood
+      }, {
+        onConflict: "couple_id,mood_date,user_id"
+      });
+
+    if (error) throw error;
+
+    await fetchMoods();
+  } catch (error) {
+    console.error("Mood save error:", error);
+    setStatus("#mood-status",
+      `Mood gagal disimpan: ${error.message || "Coba lagi."}`
+    );
+  } finally {
+    moodBusy = false;
+    $$(".mood-button[data-mood]").forEach(button => {
+      button.disabled = false;
+    });
+    renderMoods();
+  }
+}
+
+$$(".mood-button[data-mood]").forEach(button => {
+  button.addEventListener("click", () => saveMood(button.dataset.mood));
+});
+
+// ==========================================
+// TANTANGAN HARIAN
+// ==========================================
+
+const DAILY_CHALLENGES = [
+  "Kirim satu pesan baik untuk pasanganmu.",
+  "Tanyakan bagaimana hari kalian berjalan.",
+  "Bagikan satu lagu yang mengingatkanmu pada pasangan.",
+  "Ucapkan terima kasih untuk satu hal kecil.",
+  "Ceritakan satu hal menyenangkan hari ini.",
+  "Kirim foto sesuatu yang membuatmu tersenyum.",
+  "Luangkan lima menit untuk ngobrol tanpa distraksi.",
+  "Berikan satu pujian yang tulus.",
+  "Ceritakan satu hal yang ingin kalian lakukan bersama.",
+  "Kirim pesan penyemangat untuk hari ini.",
+  "Ingat kembali satu kenangan yang membuat kalian tertawa.",
+  "Tanyakan satu hal baru yang ingin pasangan coba."
+];
+
+function challengeForDate(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const dayNumber = Math.floor(
+    new Date(year, month - 1, day).getTime() / 86400000
+  );
+
+  return DAILY_CHALLENGES[
+    ((dayNumber % DAILY_CHALLENGES.length) + DAILY_CHALLENGES.length) %
+    DAILY_CHALLENGES.length
+  ];
+}
+
+async function ensureDailyChallenge() {
+  const date = today();
+
+  const { error: insertError } = await supabaseClient
+    .from("daily_challenges")
+    .insert({
+      couple_id: coupleId,
+      challenge_date: date,
+      challenge_text: challengeForDate(date)
+    });
+
+  if (insertError && insertError.code !== "23505") {
+    throw insertError;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("daily_challenges")
+    .select("couple_id,challenge_date,challenge_text")
+    .eq("couple_id", coupleId)
+    .eq("challenge_date", date)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    throw new Error(
+      "Tantangan belum ditemukan. Pastikan kolom challenge_text tersedia di daily_challenges."
+    );
+  }
+
+  challengeRow = data;
+  await fetchChallengeCompletions();
+}
+
+async function fetchChallengeCompletions() {
+  const { data, error } = await supabaseClient
+    .from("challenge_completions")
+    .select("user_id,challenge_date")
+    .eq("couple_id", coupleId)
+    .eq("challenge_date", today());
+
+  if (error) throw error;
+  challengeCompletionRows = data || [];
+  renderChallenge();
+}
+
+function renderChallenge() {
+  if (!currentUser) return;
+
+  const completedIds = new Set(
+    challengeCompletionRows.map(row => row.user_id)
+  );
+
+  const meDone = completedIds.has(currentUser.id);
+  const partnerDone = completedIds.has(partnerUserId);
+  const total = Number(meDone) + Number(partnerDone);
+
+  setText("#challenge-date", `Tantangan · ${dateLabel(today())}`);
+  setText("#challenge-text",
+    challengeRow?.challenge_text || challengeForDate(today())
+  );
+  setText("#challenge-progress-text", `${total}/2 selesai`);
+
+  const progressBar = $("#challenge-progress-bar");
+  if (progressBar) progressBar.style.width = `${total * 50}%`;
+
+  const meButton = $("#challenge-me");
+  const partnerButton = $("#challenge-partner");
+
+  if (meButton) {
+    meButton.classList.toggle("completed", meDone);
+    meButton.disabled = challengeBusy || meDone;
+    meButton.innerHTML = `
+      <strong>${escapeHTML(MY_NAME)}</strong>
+      <span>${meDone ? "✓ Selesai" : "○ Belum selesai"}</span>
+    `;
+  }
+
+  if (partnerButton) {
+    partnerButton.classList.toggle("completed", partnerDone);
+    // A user's browser must not mark the partner's challenge complete.
+    partnerButton.disabled = true;
+    partnerButton.innerHTML = `
+      <strong>${escapeHTML(PARTNER_NAME)}</strong>
+      <span>${partnerDone ? "✓ Selesai" : "○ Menunggu pasangan"}</span>
+    `;
+  }
+
+  setStatus("#challenge-status",
+    total === 2
+      ? "Kalian berhasil menyelesaikan tantangan hari ini! ♡"
+      : meDone
+        ? `Bagus! Sekarang menunggu ${PARTNER_NAME}.`
+        : partnerDone
+          ? `${PARTNER_NAME} sudah selesai. Sekarang giliranmu!`
+          : "Selesaikan tantangan, lalu tunggu pasanganmu."
+  );
+}
+
+async function toggleMyChallenge() {
+  if (!currentUser || !coupleId || challengeBusy) return;
+
+  const alreadyDone = challengeCompletionRows.some(
+    row => row.user_id === currentUser.id
+  );
+
+  if (alreadyDone) return;
+
+  challengeBusy = true;
+  renderChallenge();
+  setStatus("#challenge-status", "Menyimpan progres...");
+
+  try {
+    const { error } = await supabaseClient
+      .from("challenge_completions")
+      .insert({
+        couple_id: coupleId,
+        challenge_date: today(),
+        user_id: currentUser.id
+      });
+
+    if (error && error.code !== "23505") throw error;
+
+    await fetchChallengeCompletions();
+  } catch (error) {
+    console.error("Challenge completion error:", error);
+    setStatus("#challenge-status",
+      `Progres gagal disimpan: ${error.message || "Coba lagi."}`
+    );
+  } finally {
+    challengeBusy = false;
+    renderChallenge();
+  }
+}
+
+$("#challenge-me")?.addEventListener("click", toggleMyChallenge);
+
+// ==========================================
+// WRAPPED — RINGKASAN AKTIVITAS
+// ==========================================
+
+function getWrappedRange(period) {
+  const end = today();
+
+  if (period === "month") {
+    const d = new Date();
+    return {
+      start: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      end
+    };
+  }
+
+  return {
+    start: shiftDate(end, -6),
+    end
+  };
+}
+
+function countInRange(rows, dateKey, start, end) {
+  return rows.filter(row =>
+    row[dateKey] >= start && row[dateKey] <= end
+  ).length;
+}
+
+async function renderWrapped() {
+  if (!currentUser || !coupleId) return;
+
+  const range = getWrappedRange(wrappedPeriod);
+  setHTML("#wrapped-content",
+    `<p class="wrapped-empty">Mengumpulkan cerita kalian... ✨</p>`
+  );
+
+  try {
+    const [
+      { data: moods, error: moodsError },
+      { data: challenges, error: challengesError },
+      { data: checkins, error: checkinsError }
+    ] = await Promise.all([
+      supabaseClient
+        .from("daily_moods")
+        .select("user_id,mood,mood_date")
+        .eq("couple_id", coupleId)
+        .gte("mood_date", range.start)
+        .lte("mood_date", range.end),
+
+      supabaseClient
+        .from("challenge_completions")
+        .select("user_id,challenge_date")
+        .eq("couple_id", coupleId)
+        .gte("challenge_date", range.start)
+        .lte("challenge_date", range.end),
+
+      supabaseClient
+        .from("checkins")
+        .select("user_id,checkin_date")
+        .eq("couple_id", coupleId)
+        .gte("checkin_date", range.start)
+        .lte("checkin_date", range.end)
+    ]);
+
+    if (moodsError) throw moodsError;
+    if (challengesError) throw challengesError;
+    if (checkinsError) throw checkinsError;
+
+    const moodData = moods || [];
+    const challengeData = challenges || [];
+    const checkinData = checkins || [];
+
+    const periodCheckins = countInRange(
+      checkinData, "checkin_date", range.start, range.end
+    );
+
+    const periodMoods = countInRange(
+      moodData, "mood_date", range.start, range.end
+    );
+
+    const periodChallenges = countInRange(
+      challengeData, "challenge_date", range.start, range.end
+    );
+
+    const periodNotes = notesRows.filter(row => {
+      const date = timestampDate(row.created_at);
+      return date >= range.start && date <= range.end;
+    }).length;
+
+    const uniqueCheckinDays = new Set(
+      checkinData.map(row => `${row.user_id}:${row.checkin_date}`)
+    ).size;
+
+    const moodCounts = Object.keys(MOOD_INFO).map(key => ({
+      key,
+      ...MOOD_INFO[key],
+      count: moodData.filter(row => row.mood === key).length
+    }));
+
+    const maxMoodCount = Math.max(
+      1,
+      ...moodCounts.map(item => item.count)
+    );
+
+    const moodBars = moodCounts
+      .filter(item => item.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .map(item => `
+        <div class="wrapped-mood-row">
+          <span>${item.emoji} ${escapeHTML(item.label)}</span>
+          <div class="wrapped-mood-track">
+            <div class="wrapped-mood-fill"
+              style="width:${(item.count / maxMoodCount) * 100}%"></div>
+          </div>
+          <span class="wrapped-mood-count">${item.count}</span>
+        </div>
+      `).join("");
+
+    const title = wrappedPeriod === "month"
+      ? "Bulan ini"
+      : "7 hari terakhir";
+
+    const empty = periodCheckins === 0 &&
+      periodMoods === 0 &&
+      periodChallenges === 0 &&
+      periodNotes === 0;
+
+    setHTML("#wrapped-content", `
+      <div class="muted small">
+        ${escapeHTML(title)} · ${escapeHTML(dateLabel(range.start))}
+        – ${escapeHTML(dateLabel(range.end))}
+      </div>
+
+      ${empty ? `
+        <div class="wrapped-empty">
+          Belum ada aktivitas yang tercatat dalam periode ini.
+          Mulai kumpulkan cerita kecil kalian bersama ♡
+        </div>
+      ` : `
+        <div class="wrapped-grid" style="margin-top:14px">
+          <div class="wrapped-stat">
+            <span class="eyebrow">CHECK-IN</span>
+            <strong class="wrapped-number">${periodCheckins}</strong>
+            <span class="wrapped-label">Check-in tersimpan</span>
+          </div>
+          <div class="wrapped-stat">
+            <span class="eyebrow">MOOD</span>
+            <strong class="wrapped-number">${periodMoods}</strong>
+            <span class="wrapped-label">Mood yang dibagikan</span>
+          </div>
+          <div class="wrapped-stat">
+            <span class="eyebrow">CHALLENGE</span>
+            <strong class="wrapped-number">${periodChallenges}</strong>
+            <span class="wrapped-label">Tantangan yang diselesaikan</span>
+          </div>
+          <div class="wrapped-stat">
+            <span class="eyebrow">NOTES</span>
+            <strong class="wrapped-number">${periodNotes}</strong>
+            <span class="wrapped-label">Catatan yang dibuat</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:13px">
+          <div class="eyebrow">JEJAK KEHADIRAN</div>
+          <p>
+            Ada ${uniqueCheckinDays} catatan kehadiran individu
+            dari check-in yang tersimpan selama periode ini.
+          </p>
+        </div>
+
+        <div class="card" style="margin-top:13px">
+          <div class="eyebrow">MOOD KALIAN</div>
+          ${moodBars
+            ? `<div class="wrapped-moods">${moodBars}</div>`
+            : `<p class="wrapped-empty">Belum ada mood tercatat pada periode ini.</p>`
+          }
+        </div>
+      `}
+    `);
+  } catch (error) {
+    console.error("Wrapped error:", error);
+    setHTML("#wrapped-content", `
+      <div class="wrapped-empty">
+        Ringkasan belum dapat dimuat.<br>
+        ${escapeHTML(error.message || "Periksa koneksi dan kebijakan Supabase.")}
+      </div>
+    `);
+  }
+}
+
+$$(".wrapped-tab[data-period]").forEach(button => {
+  button.addEventListener("click", async () => {
+    wrappedPeriod = button.dataset.period === "month" ? "month" : "week";
+
+    $$(".wrapped-tab[data-period]").forEach(tab => {
+      tab.classList.toggle("active", tab === button);
+      tab.setAttribute("aria-pressed", String(tab === button));
+    });
+
+    await renderWrapped();
+  });
+});
+
+$("#refresh-wrapped")?.addEventListener("click", renderWrapped);
+
+// ==========================================
+// MEMUAT SEMUA FITUR ACTIVITY
+// ==========================================
+
+async function loadActivity() {
+  if (!currentUser || !coupleId) return;
+
+  const results = await Promise.allSettled([
+    ensurePet(),
+    fetchMoods(),
+    ensureDailyChallenge()
+  ]);
+
+  const messages = [];
+
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error("Activity feature error:", index, result.reason);
+      messages.push(result.reason?.message || "Ada fitur yang gagal dimuat.");
+    }
+  });
+
+  if (messages.length) {
+    setStatus("#activity-status", messages.join(" · "));
+  } else {
+    setStatus("#activity-status", "");
+  }
+
+  await renderWrapped();
+}
+
+// ==========================================
 // PENGATURAN TAMPILAN — LOKAL PER PERANGKAT
 // ==========================================
 
@@ -863,11 +1545,11 @@ function applySettings(settings) {
 
 const settings = localDB.get("olu-settings", {});
 
-$("#theme").value = settings.theme || "purple";
-$("#wallpaper").value = settings.wallpaper || "";
+if ($("#theme")) $("#theme").value = settings.theme || "purple";
+if ($("#wallpaper")) $("#wallpaper").value = settings.wallpaper || "";
 applySettings(settings);
 
-$("#save-settings").addEventListener("click", () => {
+$("#save-settings")?.addEventListener("click", () => {
   const wallpaper = $("#wallpaper").value.trim();
 
   if (wallpaper && !/^https?:\/\//i.test(wallpaper)) {
