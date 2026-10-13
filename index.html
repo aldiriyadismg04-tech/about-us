@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#100d1b">
+  <meta name="description" content="A little place for two. Our Little Universe ♡">
   <title>Our Little Universe ♡</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -103,7 +105,10 @@
         <p id="home-note" class="note-text">
           Belum ada catatan hari ini.
         </p>
+
+        <!-- Pemutar Spotify untuk note terbaru hari ini -->
         <div id="home-music"></div>
+
         <button class="secondary" data-page="notes" type="button">
           Tulis catatan ♡
         </button>
@@ -189,13 +194,20 @@
         ></textarea>
 
         <label for="music-link">
-          Link lagu Spotify atau YouTube (opsional)
+          Lagu untuk note ini (opsional)
         </label>
+
         <input
           id="music-link"
           type="url"
-          placeholder="https://..."
+          placeholder="Tempel link lagu Spotify di sini"
+          autocomplete="url"
         >
+
+        <p class="muted tiny">
+          ♫ Tempel tautan lagu, album, atau playlist Spotify.
+          Kartu pemutar akan ditampilkan otomatis setelah note disimpan.
+        </p>
 
         <button class="primary" type="submit">
           Simpan catatan ♡
@@ -206,6 +218,7 @@
         <h2>Memory notes</h2>
       </div>
 
+      <!-- app.js akan mengisi note dan kartu Spotify di sini -->
       <div id="notes-list" class="stack"></div>
     </section>
 
