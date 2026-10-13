@@ -83,47 +83,154 @@
       </div>
 
       <article class="card lumi-card">
-        <div class="lumi-scene">
-          <div class="lumi-sparkle sparkle-one">✦</div>
-          <div class="lumi-sparkle sparkle-two">✧</div>
-          <div id="lumi-sprite" class="lumi-sprite" aria-label="Lumi, peliharaan virtual">
-            <span class="lumi-ears">♥ ♥</span>
-            <span class="lumi-face">૮ ˶ᵔ ᵕ ᵔ˶ ა</span>
-            <span class="lumi-feet">▰ ▰</span>
-          </div>
-          <p id="lumi-status" class="lumi-status">Lumi senang kalian datang ♡</p>
-        </div>
+      <article class="card lumi-card">
+  <div class="lumi-heading">
+    <div>
+      <p class="eyebrow">OUR LITTLE COMPANION</p>
+      <h3 id="lumi-name">Lumi</h3>
+      <p class="muted tiny">
+        Level <span id="lumi-level">1</span> ·
+        <span id="lumi-exp">0/100 EXP</span>
+      </p>
+    </div>
+    <span class="lumi-heart">♥</span>
+  </div>
 
-        <div class="lumi-heading">
-          <div>
-            <h3 id="lumi-name">Lumi</h3>
-            <p class="muted tiny">Level <span id="lumi-level">1</span> · <span id="lumi-exp">0</span> EXP</p>
-          </div>
-          <span class="lumi-heart">♥</span>
-        </div>
+  <div class="lumi-stage" id="lumi-stage">
+    <span class="lumi-sparkle sparkle-one">✦</span>
+    <span class="lumi-sparkle sparkle-two">✧</span>
 
-        <div class="lumi-stat">
-          <div class="lumi-stat-label">
-            <span>🍓 Kenyang</span>
-            <span id="lumi-hunger-text">80%</span>
-          </div>
-          <div class="lumi-bar"><div id="lumi-hunger-bar" class="lumi-bar-fill hunger-fill" style="width:80%"></div></div>
-        </div>
+    <button
+      type="button"
+      id="lumi-sprite"
+      class="lumi-sprite"
+      aria-label="Ketuk untuk menidurkan atau membangunkan Lumi"
+      aria-pressed="false"
+    >
+      <svg
+        class="lumi-cat"
+        viewBox="0 0 128 128"
+        xmlns="http://www.w3.org/2000/svg"
+        shape-rendering="crispEdges"
+        aria-hidden="true"
+      >
+        <g class="lumi-tail">
+          <rect x="91" y="77" width="8" height="8" fill="#9c78d8"/>
+          <rect x="99" y="69" width="8" height="8" fill="#9c78d8"/>
+          <rect x="99" y="61" width="8" height="8" fill="#c4a5ff"/>
+          <rect x="91" y="57" width="8" height="8" fill="#c4a5ff"/>
+        </g>
 
-        <div class="lumi-stat">
-          <div class="lumi-stat-label">
-            <span>💗 Bahagia</span>
-            <span id="lumi-happiness-text">80%</span>
-          </div>
-          <div class="lumi-bar"><div id="lumi-happiness-bar" class="lumi-bar-fill happiness-fill" style="width:80%"></div></div>
-        </div>
+        <ellipse class="lumi-shadow" cx="64" cy="111" rx="31" ry="6" fill="#090711" opacity=".4"/>
 
-        <div class="two-buttons lumi-actions">
-          <button id="lumi-feed" class="secondary" type="button">🍓 Beri makan</button>
-          <button id="lumi-play" class="primary" type="button">♡ Ajak bermain</button>
-        </div>
-        <p class="muted tiny center">Apa yang kalian lakukan untuk Lumi akan tersimpan bersama.</p>
-      </article>
+        <g class="lumi-body">
+          <rect x="36" y="70" width="56" height="32" fill="#b69aee"/>
+          <rect x="28" y="78" width="72" height="20" fill="#b69aee"/>
+          <rect x="36" y="66" width="56" height="12" fill="#c8b2f7"/>
+          <rect x="36" y="94" width="12" height="10" fill="#a78bdc"/>
+          <rect x="80" y="94" width="12" height="10" fill="#a78bdc"/>
+          <rect x="42" y="100" width="14" height="8" fill="#eadfff"/>
+          <rect x="72" y="100" width="14" height="8" fill="#eadfff"/>
+        </g>
+
+        <g class="lumi-head">
+          <path d="M28 40V16H44V28H52V36H76V28H84V16H100V40H108V64H100V76H28V64H20V48H28Z" fill="#d9c7ff"/>
+          <path d="M36 24H44V40H36Z" fill="#f6a8c9"/>
+          <path d="M84 40V24H92V40Z" fill="#f6a8c9"/>
+          <rect x="28" y="40" width="72" height="28" fill="#d9c7ff"/>
+          <rect x="36" y="32" width="56" height="36" fill="#d9c7ff"/>
+          <rect x="28" y="48" width="8" height="16" fill="#c7adf4"/>
+          <rect x="92" y="48" width="8" height="16" fill="#c7adf4"/>
+        </g>
+
+        <g class="lumi-face">
+          <g class="lumi-eyes">
+            <rect x="42" y="48" width="8" height="12" fill="#342449"/>
+            <rect x="78" y="48" width="8" height="12" fill="#342449"/>
+            <rect x="44" y="48" width="3" height="3" fill="#ffffff"/>
+            <rect x="80" y="48" width="3" height="3" fill="#ffffff"/>
+          </g>
+
+          <g class="lumi-closed-eyes">
+            <rect x="40" y="52" width="12" height="4" fill="#704e9d"/>
+            <rect x="76" y="52" width="12" height="4" fill="#704e9d"/>
+          </g>
+
+          <g class="lumi-cheeks">
+            <rect x="32" y="60" width="12" height="6" fill="#f6a8c9"/>
+            <rect x="84" y="60" width="12" height="6" fill="#f6a8c9"/>
+          </g>
+
+          <g class="lumi-mouth">
+            <rect x="60" y="60" width="8" height="4" fill="#704e9d"/>
+            <rect x="56" y="64" width="4" height="4" fill="#704e9d"/>
+            <rect x="68" y="64" width="4" height="4" fill="#704e9d"/>
+          </g>
+        </g>
+
+        <g class="lumi-sleep-face">
+          <rect x="40" y="52" width="12" height="4" fill="#704e9d"/>
+          <rect x="76" y="52" width="12" height="4" fill="#704e9d"/>
+          <rect x="60" y="62" width="8" height="4" fill="#704e9d"/>
+        </g>
+
+        <g class="lumi-collar">
+          <rect x="48" y="76" width="32" height="6" fill="#f6a8c9"/>
+          <rect x="60" y="80" width="8" height="8" fill="#ffe18c"/>
+        </g>
+
+        <g class="lumi-sleep-z">
+          <text x="94" y="36">Z</text>
+          <text x="105" y="23">z</text>
+        </g>
+      </svg>
+    </button>
+
+    <div class="lumi-ground-glow"></div>
+
+    <p id="lumi-status" class="lumi-status">
+      Lumi senang kalian datang ♡
+    </p>
+  </div>
+
+  <div class="lumi-exp-track">
+    <div id="lumi-exp-bar" class="lumi-exp-fill" style="width:0%"></div>
+  </div>
+
+  <div class="lumi-stat">
+    <div class="lumi-stat-heading">
+      <span>🍓 Kenyang</span>
+      <span id="lumi-hunger-text">80/100</span>
+    </div>
+    <div class="lumi-stat-track">
+      <div id="lumi-hunger-bar" class="lumi-stat-fill hunger-fill" style="width:80%"></div>
+    </div>
+  </div>
+
+  <div class="lumi-stat">
+    <div class="lumi-stat-heading">
+      <span>💗 Bahagia</span>
+      <span id="lumi-happiness-text">80/100</span>
+    </div>
+    <div class="lumi-stat-track">
+      <div id="lumi-happiness-bar" class="lumi-stat-fill happiness-fill" style="width:80%"></div>
+    </div>
+  </div>
+
+  <div class="lumi-actions">
+    <button id="lumi-feed" class="lumi-feed-button" type="button">
+      🍓 Beri makan
+    </button>
+    <button id="lumi-play" class="lumi-play-button" type="button">
+      ♡ Ajak bermain
+    </button>
+  </div>
+
+  <p id="lumi-action-status" class="activity-status" aria-live="polite"></p>
+  <p class="muted tiny center">
+    Ketuk Lumi untuk menidurkan atau membangunkannya. Perawatan tersimpan bersama ♡
+  </p>
+</article>
 
       <div class="section-title">
         <h2>Today's note 💌</h2>
