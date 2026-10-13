@@ -1105,9 +1105,10 @@ $("#lumi-play")?.addEventListener("click", () => {
 
 $("#lumi-sprite")?.addEventListener("click", toggleLumiSleep);
 
-// ==========================================
-// MOOD HARIAN
-// ==========================================
+
+/* ==========================================
+   MOOD HARIAN — FIX HTML DAN EVENT KLIK
+========================================== */
 
 const MOOD_INFO = {
   happy: { label: "Bahagia", emoji: "😊" },
@@ -1126,51 +1127,70 @@ async function fetchMoods() {
     .eq("mood_date", today());
 
   if (error) throw error;
+
   moodRows = data || [];
   renderMoods();
 }
 
 function renderMoods() {
-  const myMood = moodRows.find(row => row.user_id === currentUser?.id);
-  const partnerMood = moodRows.find(row => row.user_id === partnerUserId);
+  if (!currentUser) return;
 
-  $$(".mood-button[data-mood]").forEach(button => {
+  const myMood = moodRows.find(
+    row => row.user_id === currentUser.id
+  );
+
+  const partnerMood = moodRows.find(
+    row => row.user_id === partnerUserId
+  );
+
+  // HTML memakai .mood-option, bukan .mood-button
+  $$("#mood-options .mood-option[data-mood]").forEach(button => {
     const selected = myMood?.mood === button.dataset.mood;
+
     button.classList.toggle("selected", Boolean(selected));
+    button.classList.toggle("active", Boolean(selected));
     button.setAttribute("aria-pressed", String(Boolean(selected)));
     button.disabled = moodBusy;
   });
 
   const renderPersonMood = (name, row) => {
     const info = row ? MOOD_INFO[row.mood] : null;
+
     return `
       <div class="couple-mood-item">
         <strong>${escapeHTML(name)}</strong>
-        <span>${info ? `${info.emoji} ${escapeHTML(info.label)}` : "Belum memilih mood"}</span>
+        <span>
+          ${info
+            ? `${info.emoji} ${escapeHTML(info.label)}`
+            : "Belum memilih mood"}
+        </span>
       </div>
     `;
   };
 
-  setHTML("#couple-moods",
+  setHTML(
+    "#couple-moods",
     renderPersonMood(MY_NAME, myMood) +
     renderPersonMood(PARTNER_NAME, partnerMood)
   );
 
-  setStatus("#mood-status", myMood
-    ? "Mood kamu hari ini sudah tersimpan ♡"
-    : "Pilih satu mood yang paling menggambarkan harimu."
+  setStatus(
+    "#mood-status",
+    myMood
+      ? `Mood kamu hari ini: ${MOOD_INFO[myMood.mood]?.label || myMood.mood} ♡`
+      : "Pilih satu mood yang paling menggambarkan harimu."
   );
 }
 
 async function saveMood(mood) {
-  if (!currentUser || !coupleId || moodBusy || !MOOD_INFO[mood]) return;
+  if (!currentUser || !coupleId || moodBusy || !MOOD_INFO[mood]) {
+    return;
+  }
 
   moodBusy = true;
-  $$(".mood-button[data-mood]").forEach(button => {
-    button.disabled = true;
-  });
+  renderMoods();
 
-  setStatus("#mood-status", "Menyimpan mood...");
+  setStatus("#mood-status", "Menyimpan mood... ♡");
 
   try {
     const { error } = await supabaseClient
@@ -1187,18 +1207,37 @@ async function saveMood(mood) {
     if (error) throw error;
 
     await fetchMoods();
+
+    setStatus(
+      "#mood-status",
+      `Mood kamu hari ini: ${MOOD_INFO[mood].label} ♡`
+    );
   } catch (error) {
     console.error("Mood save error:", error);
-    setStatus("#mood-status",
+
+    setStatus(
+      "#mood-status",
       `Mood gagal disimpan: ${error.message || "Coba lagi."}`
     );
   } finally {
     moodBusy = false;
-    $$(".mood-button[data-mood]").forEach(button => {
-      button.disabled = false;
-    });
     renderMoods();
   }
+}
+
+// Event delegation: klik emoji maupun teks tombol tetap berfungsi.
+const moodContainer = $("#mood-options");
+
+if (moodContainer && moodContainer.dataset.moodReady !== "true") {
+  moodContainer.dataset.moodReady = "true";
+
+  moodContainer.addEventListener("click", event => {
+    const button = event.target.closest(".mood-option[data-mood]");
+
+    if (!button || !moodContainer.contains(button)) return;
+
+    saveMood(button.dataset.mood);
+  });
 }
 
 $$(".mood-button[data-mood]").forEach(button => {
