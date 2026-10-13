@@ -644,3 +644,427 @@ body.theme-blue { --bg:#0d1421; --panel:#151f30; --panel2:#1f2c40; --accent:#9dd
     transition: none;
   }
 }
+/* =====================================
+   LUMI PIXEL CAT — ANIMATION SYSTEM
+===================================== */
+
+.lumi-card {
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 0%, #49345f 0%, transparent 65%),
+    var(--panel);
+}
+
+.lumi-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lumi-heading h3 {
+  margin: 8px 0 4px;
+  font-size: 22px;
+}
+
+.lumi-heading p {
+  margin: 0;
+}
+
+.lumi-heart {
+  color: #f2a9d6;
+  font-size: 25px;
+  animation: lumi-heartbeat 1.6s ease-in-out infinite;
+}
+
+.lumi-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  margin: 16px 0;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid #ffffff10;
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 50% 76%, #76519a45, transparent 52%),
+    linear-gradient(180deg, #21192f, #181324);
+}
+
+.lumi-sprite {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 170px;
+  height: 165px;
+  padding: 0;
+  border: 0;
+  outline-offset: -5px;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lumi-cat {
+  display: block;
+  width: 144px;
+  height: 144px;
+  overflow: visible;
+  image-rendering: pixelated;
+  transform-origin: 50% 85%;
+  filter: drop-shadow(0 8px 0 #0b081520);
+  animation: lumi-breathe 2.3s ease-in-out infinite;
+}
+
+.lumi-sprite:focus-visible {
+  outline: 2px dashed var(--accent);
+  border-radius: 20px;
+}
+
+.lumi-tail {
+  transform-box: fill-box;
+  transform-origin: 10% 80%;
+  animation: lumi-tail-wag 1.4s ease-in-out infinite;
+}
+
+.lumi-head {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lumi-head-bob 2.3s ease-in-out infinite;
+}
+
+.lumi-closed-eyes,
+.lumi-sleep-face,
+.lumi-sleep-z {
+  display: none;
+}
+
+.lumi-eyes {
+  animation: lumi-blink 4.5s infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.lumi-cheeks {
+  animation: lumi-cheek-glow 2s ease-in-out infinite alternate;
+}
+
+.lumi-shadow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lumi-shadow 2.3s ease-in-out infinite;
+}
+
+.lumi-ground-glow {
+  position: absolute;
+  z-index: 0;
+  bottom: 49px;
+  width: 110px;
+  height: 20px;
+  border-radius: 50%;
+  background: #c3a4ff20;
+  filter: blur(12px);
+  animation: lumi-glow 2.3s ease-in-out infinite;
+}
+
+.lumi-sparkle {
+  position: absolute;
+  z-index: 1;
+  color: #eadfff;
+  opacity: .7;
+  pointer-events: none;
+  animation: lumi-sparkle 2s ease-in-out infinite;
+}
+
+.sparkle-one {
+  top: 40px;
+  left: calc(50% - 70px);
+  font-size: 20px;
+}
+
+.sparkle-two {
+  top: 68px;
+  right: calc(50% - 79px);
+  font-size: 17px;
+  animation-delay: .8s;
+}
+
+.lumi-status {
+  position: absolute;
+  z-index: 3;
+  right: 8px;
+  bottom: 9px;
+  left: 8px;
+  margin: 0;
+  color: #d1c4e5;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.lumi-exp-track,
+.lumi-stat-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #ffffff12;
+}
+
+.lumi-exp-track {
+  margin: 9px 0 14px;
+  height: 6px;
+}
+
+.lumi-exp-fill,
+.lumi-stat-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  transition: width .4s ease;
+}
+
+.lumi-exp-fill {
+  background: linear-gradient(90deg, #a88aff, #f2a9d6);
+}
+
+.lumi-stat {
+  margin-top: 15px;
+}
+
+.lumi-stat-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+  font-size: 11px;
+}
+
+.lumi-stat-heading span:last-child {
+  color: var(--muted);
+}
+
+.hunger-fill {
+  background: linear-gradient(90deg, #ed9e8b, #ffcf91);
+}
+
+.happiness-fill {
+  background: linear-gradient(90deg, #d68fc9, #f5b8df);
+}
+
+.lumi-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.lumi-actions button {
+  min-width: 0;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  color: var(--text);
+  background: var(--panel2);
+  font-size: 12px;
+  font-weight: bold;
+  transition: transform .15s ease, filter .15s ease;
+}
+
+.lumi-actions button:active {
+  transform: scale(.96);
+}
+
+.lumi-actions button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.lumi-feed-button {
+  border-color: #8c6cc5 !important;
+  background: #392b4c !important;
+}
+
+.lumi-play-button {
+  border-color: #bd78aa !important;
+  background: #3c2840 !important;
+}
+
+.lumi-sprite.is-sleeping .lumi-eyes,
+.lumi-sprite.is-sleeping .lumi-mouth,
+.lumi-sprite.is-sleeping .lumi-cheeks {
+  display: none;
+}
+
+.lumi-sprite.is-sleeping .lumi-closed-eyes,
+.lumi-sprite.is-sleeping .lumi-sleep-face {
+  display: initial;
+}
+
+.lumi-sprite.is-sleeping .lumi-sleep-z {
+  display: initial;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: bold;
+  fill: #e6d6ff;
+  animation: lumi-zzz 1.8s ease-in-out infinite;
+}
+
+.lumi-sprite.is-sleeping .lumi-cat,
+.lumi-sprite.is-sleeping .lumi-head {
+  animation: lumi-sleep-breathe 2.6s ease-in-out infinite;
+}
+
+.lumi-sprite.is-sleeping .lumi-tail {
+  animation-duration: 3.5s;
+}
+
+.lumi-sprite.is-eating .lumi-head {
+  animation: lumi-eat .22s ease-in-out infinite alternate;
+}
+
+.lumi-sprite.is-eating .lumi-cat {
+  animation: lumi-eat-body .3s ease-in-out infinite alternate;
+}
+
+.lumi-sprite.is-playing .lumi-cat {
+  animation: lumi-jump .42s ease-in-out infinite;
+}
+
+.lumi-sprite.is-playing .lumi-tail {
+  animation-duration: .3s;
+}
+
+.lumi-sprite.is-happy .lumi-head {
+  animation: lumi-happy .35s ease-in-out 3;
+}
+
+.lumi-sprite.is-sad .lumi-cheeks {
+  opacity: .35;
+}
+
+.lumi-sprite.is-sad .lumi-mouth {
+  transform: translateY(2px);
+}
+
+.lumi-sprite.is-hungry .lumi-head {
+  animation: lumi-hungry 1.5s ease-in-out infinite;
+}
+
+.lumi-stage.is-sleeping .lumi-sparkle {
+  opacity: .25;
+}
+
+@keyframes lumi-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.015, .99); }
+}
+
+@keyframes lumi-head-bob {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(1px) rotate(1deg); }
+}
+
+@keyframes lumi-tail-wag {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(13deg); }
+}
+
+@keyframes lumi-blink {
+  0%, 44%, 48%, 72%, 76%, 100% { transform: scaleY(1); }
+  46%, 74% { transform: scaleY(.12); }
+}
+
+@keyframes lumi-cheek-glow {
+  from { opacity: .65; }
+  to { opacity: 1; }
+}
+
+@keyframes lumi-shadow {
+  0%, 100% { transform: scaleX(1); opacity: .4; }
+  50% { transform: scaleX(.88); opacity: .25; }
+}
+
+@keyframes lumi-glow {
+  0%, 100% { transform: scaleX(1); opacity: .7; }
+  50% { transform: scaleX(.75); opacity: .4; }
+}
+
+@keyframes lumi-sparkle {
+  0%, 100% { transform: translateY(0) scale(.8); opacity: .35; }
+  50% { transform: translateY(-8px) scale(1.15); opacity: .9; }
+}
+
+@keyframes lumi-heartbeat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.12); }
+  24% { transform: scale(1); }
+}
+
+@keyframes lumi-eat {
+  from { transform: translateY(0) rotate(-2deg); }
+  to { transform: translateY(4px) rotate(2deg); }
+}
+
+@keyframes lumi-eat-body {
+  from { transform: translateY(0) scaleY(1); }
+  to { transform: translateY(2px) scaleY(.98); }
+}
+
+@keyframes lumi-jump {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-20px) rotate(-3deg); }
+}
+
+@keyframes lumi-happy {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-6deg) translateY(-3px); }
+  75% { transform: rotate(6deg) translateY(-3px); }
+}
+
+@keyframes lumi-hungry {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-3deg); }
+}
+
+@keyframes lumi-sleep-breathe {
+  0%, 100% { transform: translateY(2px) scaleY(.99); }
+  50% { transform: translateY(4px) scaleY(.96); }
+}
+
+@keyframes lumi-zzz {
+  0% { opacity: 0; transform: translate(0, 5px); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(5px, -12px); }
+}
+
+@media (max-width: 360px) {
+  .lumi-stage { min-height: 220px; }
+  .lumi-sprite { width: 150px; height: 150px; }
+  .lumi-cat { width: 130px; height: 130px; }
+  .lumi-actions button { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumi-cat,
+  .lumi-tail,
+  .lumi-head,
+  .lumi-eyes,
+  .lumi-cheeks,
+  .lumi-shadow,
+  .lumi-ground-glow,
+  .lumi-sparkle,
+  .lumi-heart,
+  .lumi-sprite.is-sleeping .lumi-sleep-z {
+    animation: none !important;
+  }
+
+  .lumi-exp-fill,
+  .lumi-stat-fill {
+    transition: none;
+  }
+}
+
