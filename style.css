@@ -1067,4 +1067,60 @@ body.theme-blue { --bg:#0d1421; --panel:#151f30; --panel2:#1f2c40; --accent:#9dd
     transition: none;
   }
 }
+/* Mood buttons — Our Little Universe */
+#mood-options .mood-option {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 58px;
+  padding: 12px 14px;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  background: rgba(255, 255, 255, 0.035);
+  color: #f6eaf5;
+  border: 1px solid rgba(226, 157, 204, 0.22);
+  border-radius: 15px;
+
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Efek saat disentuh */
+#mood-options .mood-option:active {
+  transform: scale(0.97);
+}
+
+/* Mood yang sedang dipilih */
+#mood-options .mood-option.selected,
+#mood-options .mood-option.active {
+  background: linear-gradient(
+    135deg,
+    rgba(224, 139, 190, 0.22),
+    rgba(153, 117, 205, 0.18)
+  );
+  border-color: #e8a2cb;
+  box-shadow: 0 0 16px rgba(224, 139, 190, 0.10);
+  color: #ffd2e9;
+}
+
+/* Efek fokus untuk aksesibilitas */
+#mood-options .mood-option:focus-visible {
+  outline: 2px solid #e8a2cb;
+  outline-offset: 3px;
+}
+
+/* Tombol saat menyimpan */
+#mood-options .mood-option:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
