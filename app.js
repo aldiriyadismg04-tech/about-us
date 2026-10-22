@@ -1704,38 +1704,43 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ==========================================
-   OUR HOUSE — TOP-DOWN PIXEL ART
+   OUR HOUSE — PIXEL HOME + TAP TO WALK
 ========================================== */
 
 const HOUSE_DEFAULT = {
   characters: {
-    aldi: { x: 25, y: 66, room: "living" },
-    liza: { x: 42, y: 66, room: "living" }
+    aldi: { x: 34, y: 72, room: "living" },
+    liza: { x: 43, y: 72, room: "living" }
   },
   furniture: [
-    { id: "sofa", x: 25, y: 39, room: "living" },
-    { id: "plant", x: 82, y: 28, room: "living" },
-    { id: "table", x: 55, y: 46, room: "living" },
-    { id: "tv", x: 76, y: 43, room: "living" },
-    { id: "rug", x: 48, y: 69, room: "living" },
-    { id: "bed", x: 35, y: 45, room: "bedroom" },
-    { id: "desk", x: 75, y: 34, room: "bedroom" },
-    { id: "wardrobe", x: 78, y: 66, room: "bedroom" },
-    { id: "plant2", x: 17, y: 69, room: "bedroom" }
+    { id: "sofa", type: "sofa", x: 27, y: 39, room: "living" },
+    { id: "plant", type: "plant", x: 83, y: 31, room: "living" },
+    { id: "table", type: "table", x: 52, y: 53, room: "living" },
+    { id: "tv", type: "tv", x: 72, y: 30, room: "living" },
+    { id: "rug", type: "rug", x: 48, y: 67, room: "living" },
+    { id: "lamp", type: "lamp", x: 15, y: 35, room: "living" },
+    { id: "bookshelf", type: "bookshelf", x: 87, y: 55, room: "living" },
+    { id: "bed", type: "bed", x: 36, y: 39, room: "bedroom" },
+    { id: "desk", type: "desk", x: 76, y: 31, room: "bedroom" },
+    { id: "wardrobe", type: "wardrobe", x: 80, y: 67, room: "bedroom" },
+    { id: "plant2", type: "plant", x: 17, y: 67, room: "bedroom" },
+    { id: "nightstand", type: "nightstand", x: 57, y: 39, room: "bedroom" }
   ],
-  lumi: { x: 55, y: 78, room: "living" }
+  lumi: { x: 58, y: 76, room: "living" }
 };
 
 const HOUSE_ITEMS = {
-  sofa: { name: "Sofa", art: "sofa" },
-  plant: { name: "Tanaman", art: "plant" },
-  table: { name: "Meja", art: "table" },
-  tv: { name: "Televisi", art: "tv" },
-  rug: { name: "Karpet", art: "rug" },
-  bed: { name: "Tempat tidur", art: "bed" },
-  desk: { name: "Meja kerja", art: "desk" },
-  wardrobe: { name: "Lemari", art: "wardrobe" },
-  plant2: { name: "Tanaman kecil", art: "plant" }
+  sofa: { name: "Sofa", width: 16, height: 17 },
+  plant: { name: "Tanaman", width: 11, height: 15 },
+  table: { name: "Meja", width: 14, height: 13 },
+  tv: { name: "Televisi", width: 13, height: 12 },
+  rug: { name: "Karpet", width: 22, height: 17 },
+  bed: { name: "Tempat tidur", width: 20, height: 24 },
+  desk: { name: "Meja kerja", width: 15, height: 17 },
+  wardrobe: { name: "Lemari", width: 15, height: 21 },
+  lamp: { name: "Lampu lantai", width: 9, height: 16 },
+  bookshelf: { name: "Rak buku", width: 13, height: 20 },
+  nightstand: { name: "Nakas", width: 11, height: 12 }
 };
 
 let houseState = JSON.parse(JSON.stringify(HOUSE_DEFAULT));
@@ -1745,9 +1750,15 @@ let houseSaveTimer = null;
 let houseDrag = null;
 let houseLastSaved = "";
 let houseLoadRequest = null;
+let houseWalkFrame = null;
+let houseWalkToken = 0;
 
 function houseRoom() {
   return $("#house-room")?.value || "living";
+}
+
+function houseClamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function houseNormalizePosition(saved, fallback) {
@@ -1757,8 +1768,10 @@ function houseNormalizePosition(saved, fallback) {
   }
 
   return {
-    x: Math.max(5, Math.min(95, Number(saved.x))),
-    y: Math.max(18, Math.min(95, Number(saved.y))),
+    ...fallback,
+    ...saved,
+    x: houseClamp(Number(saved.x), 5, 95),
+    y: houseClamp(Number(saved.y), 18, 95),
     room: ["living", "bedroom"].includes(saved.room)
       ? saved.room
       : fallback.room
@@ -1777,11 +1790,34 @@ function normalizeHouseState(value) {
   }
 
   if (Array.isArray(value.furniture)) {
-    next.furniture = next.furniture.map(item => {
-      const saved = value.furniture.find(entry => entry.id === item.id);
-      return saved
-        ? { ...item, ...houseNormalizePosition(saved, item) }
-        : item;
+    // Pertahankan furnitur lama, item duplikat, dan furnitur baru.
+    const savedItems = value.furniture
+      .filter(item => item && typeof item === "object")
+      .map((item, index) => {
+        const legacy = HOUSE_ITEMS[item.id] ? item.id : null;
+        const type = HOUSE_ITEMS[item.type]
+          ? item.type
+          : legacy === "plant2" ? "plant" : legacy;
+
+        if (!type || !HOUSE_ITEMS[type]) return null;
+
+        return {
+          id: String(item.id || `${type}-${index}`),
+          type,
+          x: houseClamp(Number(item.x) || 50, 5, 95),
+          y: houseClamp(Number(item.y) || 50, 18, 95),
+          room: ["living", "bedroom"].includes(item.room)
+            ? item.room : "living"
+        };
+      })
+      .filter(Boolean);
+
+    const ids = new Set(savedItems.map(item => item.id));
+    next.furniture = savedItems;
+
+    // Tambahkan default baru yang belum ada pada save lama.
+    HOUSE_DEFAULT.furniture.forEach(item => {
+      if (!ids.has(item.id)) next.furniture.push({ ...item });
     });
   }
 
@@ -1789,97 +1825,141 @@ function normalizeHouseState(value) {
   return next;
 }
 
-/* Original SVG sprites for furniture: no emoji characters. */
+/* Pixel-art furniture sprites */
 function houseFurnitureSVG(type) {
   const sprites = {
     sofa: `
-      <rect x="12" y="20" width="40" height="25" fill="#a95f70"/>
-      <rect x="16" y="14" width="32" height="12" fill="#d98fa8"/>
-      <rect x="9" y="25" width="7" height="18" fill="#8c4e61"/>
-      <rect x="48" y="25" width="7" height="18" fill="#8c4e61"/>
-      <rect x="17" y="27" width="14" height="12" fill="#edb4c4"/>
-      <rect x="33" y="27" width="14" height="12" fill="#edb4c4"/>
-      <rect x="14" y="44" width="5" height="6" fill="#71482f"/>
-      <rect x="45" y="44" width="5" height="6" fill="#71482f"/>
+      <rect x="7" y="20" width="50" height="29" fill="#70465a"/>
+      <rect x="10" y="12" width="44" height="17" fill="#bd7892"/>
+      <rect x="13" y="15" width="18" height="12" fill="#e7a9bd"/>
+      <rect x="33" y="15" width="18" height="12" fill="#d891ab"/>
+      <rect x="6" y="26" width="8" height="20" fill="#9b6078"/>
+      <rect x="50" y="26" width="8" height="20" fill="#9b6078"/>
+      <rect x="13" y="30" width="18" height="13" fill="#e7a9bd"/>
+      <rect x="33" y="30" width="18" height="13" fill="#d891ab"/>
+      <rect x="12" y="47" width="6" height="7" fill="#5c3b30"/>
+      <rect x="46" y="47" width="6" height="7" fill="#5c3b30"/>
     `,
     plant: `
-      <rect x="24" y="35" width="17" height="14" fill="#b8754f"/>
-      <rect x="21" y="34" width="23" height="5" fill="#d99a65"/>
-      <rect x="27" y="20" width="10" height="16" fill="#56875a"/>
-      <rect x="15" y="17" width="14" height="11" fill="#77a765"/>
-      <rect x="35" y="13" width="15" height="12" fill="#4f8254"/>
-      <rect x="20" y="7" width="13" height="13" fill="#8ab66d"/>
-      <rect x="33" y="24" width="12" height="11" fill="#6e9d5b"/>
+      <rect x="23" y="37" width="19" height="16" fill="#9a5d42"/>
+      <rect x="20" y="35" width="25" height="5" fill="#d18b5d"/>
+      <rect x="29" y="19" width="7" height="19" fill="#557c4e"/>
+      <rect x="13" y="17" width="18" height="14" fill="#6e9e60"/>
+      <rect x="35" y="12" width="17" height="15" fill="#47784d"/>
+      <rect x="23" y="6" width="16" height="15" fill="#8dbd72"/>
+      <rect x="35" y="25" width="14" height="12" fill="#669557"/>
     `,
     table: `
-      <rect x="11" y="16" width="42" height="25" fill="#865334"/>
-      <rect x="15" y="20" width="34" height="17" fill="#c58a52"/>
-      <rect x="17" y="41" width="6" height="8" fill="#865334"/>
-      <rect x="41" y="41" width="6" height="8" fill="#865334"/>
-      <rect x="28" y="25" width="9" height="7" fill="#f0d8a5"/>
+      <rect x="8" y="18" width="48" height="26" fill="#765035"/>
+      <rect x="12" y="20" width="40" height="19" fill="#bd8750"/>
+      <rect x="15" y="43" width="6" height="10" fill="#70472e"/>
+      <rect x="43" y="43" width="6" height="10" fill="#70472e"/>
+      <rect x="25" y="24" width="14" height="9" fill="#f0d8a5"/>
+      <rect x="29" y="26" width="6" height="5" fill="#d28d9e"/>
     `,
     tv: `
-      <rect x="12" y="15" width="40" height="29" fill="#4b382e"/>
-      <rect x="16" y="19" width="32" height="21" fill="#5f8d8b"/>
-      <rect x="20" y="23" width="8" height="5" fill="#a9d4c0"/>
-      <rect x="31" y="30" width="12" height="5" fill="#8bb9a4"/>
-      <rect x="27" y="44" width="10" height="5" fill="#6b4933"/>
+      <rect x="8" y="12" width="48" height="34" fill="#594339"/>
+      <rect x="12" y="16" width="40" height="25" fill="#2f4e5d"/>
+      <rect x="16" y="20" width="12" height="7" fill="#86b8b0"/>
+      <rect x="30" y="29" width="17" height="8" fill="#648d8e"/>
+      <rect x="24" y="46" width="16" height="6" fill="#765035"/>
     `,
     rug: `
-      <rect x="6" y="14" width="52" height="35" fill="#a95766"/>
-      <rect x="10" y="18" width="44" height="27" fill="#e5a6a8"/>
-      <rect x="15" y="23" width="34" height="17" fill="#c87d88"/>
-      <rect x="21" y="28" width="22" height="7" fill="#f1d4ad"/>
+      <rect x="4" y="11" width="56" height="41" fill="#9b4f69"/>
+      <rect x="9" y="16" width="46" height="31" fill="#d38a9d"/>
+      <rect x="14" y="21" width="36" height="21" fill="#a95e7c"/>
+      <rect x="20" y="26" width="24" height="11" fill="#f1d6b6"/>
+      <rect x="27" y="29" width="10" height="5" fill="#d38a9d"/>
     `,
     bed: `
-      <rect x="10" y="10" width="45" height="42" fill="#805c43"/>
-      <rect x="14" y="14" width="37" height="34" fill="#c28da9"/>
-      <rect x="17" y="17" width="14" height="10" fill="#fff0d8"/>
-      <rect x="33" y="17" width="15" height="10" fill="#fff0d8"/>
-      <rect x="16" y="30" width="33" height="15" fill="#9f8acb"/>
-      <rect x="16" y="30" width="33" height="4" fill="#e8b8cf"/>
+      <rect x="8" y="5" width="48" height="52" fill="#76513c"/>
+      <rect x="12" y="9" width="40" height="44" fill="#c28aa8"/>
+      <rect x="15" y="12" width="17" height="12" fill="#fff0d8"/>
+      <rect x="33" y="12" width="16" height="12" fill="#fff0d8"/>
+      <rect x="14" y="27" width="36" height="22" fill="#9c8ac9"/>
+      <rect x="14" y="27" width="36" height="5" fill="#e8b8cf"/>
+      <rect x="11" y="51" width="42" height="5" fill="#76513c"/>
     `,
     desk: `
-      <rect x="10" y="15" width="45" height="29" fill="#8c5d3a"/>
-      <rect x="14" y="19" width="37" height="20" fill="#c8915d"/>
-      <rect x="16" y="43" width="6" height="8" fill="#70472e"/>
-      <rect x="43" y="43" width="6" height="8" fill="#70472e"/>
-      <rect x="27" y="7" width="18" height="12" fill="#5c777e"/>
-      <rect x="30" y="10" width="12" height="6" fill="#b5d9d3"/>
+      <rect x="7" y="20" width="50" height="26" fill="#805436"/>
+      <rect x="11" y="22" width="42" height="19" fill="#c18b55"/>
+      <rect x="13" y="44" width="7" height="10" fill="#70472e"/>
+      <rect x="44" y="44" width="7" height="10" fill="#70472e"/>
+      <rect x="23" y="8" width="23" height="15" fill="#4b626f"/>
+      <rect x="26" y="11" width="17" height="9" fill="#b5d9d3"/>
+      <rect x="29" y="23" width="10" height="3" fill="#594339"/>
     `,
     wardrobe: `
-      <rect x="12" y="9" width="42" height="43" fill="#805438"/>
-      <rect x="16" y="13" width="17" height="35" fill="#c28b56"/>
-      <rect x="35" y="13" width="15" height="35" fill="#b37a49"/>
-      <rect x="28" y="27" width="3" height="5" fill="#f0d6a2"/>
-      <rect x="38" y="27" width="3" height="5" fill="#f0d6a2"/>
+      <rect x="10" y="5" width="44" height="51" fill="#704a34"/>
+      <rect x="14" y="9" width="17" height="43" fill="#bc8652"/>
+      <rect x="33" y="9" width="17" height="43" fill="#d09a61"/>
+      <rect x="28" y="9" width="4" height="43" fill="#704a34"/>
+      <rect x="25" y="28" width="3" height="6" fill="#f3d49b"/>
+      <rect x="36" y="28" width="3" height="6" fill="#f3d49b"/>
+    `,
+    lamp: `
+      <rect x="27" y="25" width="10" height="27" fill="#805436"/>
+      <rect x="18" y="12" width="28" height="18" fill="#e9c98e"/>
+      <rect x="22" y="7" width="20" height="7" fill="#fff0c4"/>
+      <rect x="20" y="28" width="24" height="4" fill="#bd8750"/>
+      <rect x="21" y="51" width="22" height="5" fill="#704a34"/>
+    `,
+    bookshelf: `
+      <rect x="9" y="5" width="46" height="52" fill="#765035"/>
+      <rect x="14" y="10" width="36" height="12" fill="#d1a06b"/>
+      <rect x="14" y="25" width="36" height="12" fill="#d1a06b"/>
+      <rect x="14" y="40" width="36" height="12" fill="#d1a06b"/>
+      <rect x="17" y="11" width="6" height="10" fill="#8b7ec0"/>
+      <rect x="25" y="13" width="7" height="8" fill="#c96e87"/>
+      <rect x="34" y="10" width="5" height="11" fill="#648d73"/>
+      <rect x="42" y="12" width="5" height="9" fill="#d9b56c"/>
+      <rect x="18" y="26" width="8" height="10" fill="#c96e87"/>
+      <rect x="28" y="28" width="6" height="8" fill="#7f91c4"/>
+      <rect x="36" y="25" width="10" height="11" fill="#648d73"/>
+      <rect x="18" y="41" width="6" height="10" fill="#d9b56c"/>
+      <rect x="27" y="43" width="9" height="8" fill="#c96e87"/>
+      <rect x="39" y="41" width="8" height="10" fill="#8b7ec0"/>
+    `,
+    nightstand: `
+      <rect x="12" y="20" width="40" height="29" fill="#765035"/>
+      <rect x="15" y="23" width="34" height="10" fill="#d1a06b"/>
+      <rect x="15" y="35" width="34" height="10" fill="#bc8652"/>
+      <rect x="29" y="27" width="5" height="3" fill="#f3d49b"/>
+      <rect x="29" y="38" width="5" height="3" fill="#f3d49b"/>
+      <rect x="15" y="48" width="5" height="6" fill="#704a34"/>
+      <rect x="44" y="48" width="5" height="6" fill="#704a34"/>
     `
   };
 
   return `
     <svg class="pixel-sprite" viewBox="0 0 64 60"
       aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-      <rect x="8" y="49" width="48" height="4" fill="#65462f" opacity=".45"/>
+      <rect x="7" y="53" width="50" height="4" fill="#49342c" opacity=".3"/>
       ${sprites[type] || ""}
     </svg>
   `;
 }
 
 function houseCharacterArt(id) {
-  const liza = id === "liza";
-  const hair = liza ? "#59413d" : "#60483d";
-  const shirt = liza ? "#eaa5c0" : "#8f91c9";
-  const border = liza ? "#bb6e90" : "#655f9b";
-
+  const isLiza = id === "liza";
   return `
-    <div class="pixel-person" aria-hidden="true">
-      <div class="person-shadow"></div>
-      <div class="person-hair" style="background:${hair}"></div>
-      <div class="person-face"></div>
-      <div class="person-body"
-        style="background:${shirt};border-color:${border}"></div>
-      <div class="person-legs"></div>
-    </div>
+    <svg class="pixel-person" viewBox="0 0 32 42"
+      aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="16" cy="39" rx="10" ry="2.5" fill="#49342c" opacity=".4"/>
+      <rect x="8" y="5" width="16" height="15" fill="${isLiza ? "#59413d" : "#60483d"}"/>
+      <rect x="7" y="10" width="18" height="10" fill="${isLiza ? "#59413d" : "#60483d"}"/>
+      <rect x="10" y="10" width="12" height="11" fill="#f1c5a5"/>
+      <rect x="11" y="14" width="3" height="3" fill="#49342c"/>
+      <rect x="19" y="14" width="3" height="3" fill="#49342c"/>
+      <rect x="14" y="18" width="5" height="2" fill="#c77b83"/>
+      <rect x="6" y="22" width="20" height="12" fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
+      <rect x="3" y="23" width="5" height="10" fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
+      <rect x="24" y="23" width="5" height="10" fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
+      <rect x="8" y="33" width="6" height="7" fill="#5c453a"/>
+      <rect x="18" y="33" width="6" height="7" fill="#5c453a"/>
+      <rect x="7" y="39" width="8" height="2" fill="#43332f"/>
+      <rect x="17" y="39" width="8" height="2" fill="#43332f"/>
+    </svg>
   `;
 }
 
@@ -1888,7 +1968,7 @@ function houseLumiArt() {
   const originalSVG = original?.querySelector("svg");
 
   if (!originalSVG) {
-    return `<div class="lumi-house-fallback" aria-label="Lumi"></div>`;
+    return `<div class="lumi-house-fallback" aria-label="Lumi">🐈</div>`;
   }
 
   const clone = originalSVG.cloneNode(true);
@@ -1896,26 +1976,33 @@ function houseLumiArt() {
   clone.querySelectorAll("[id]").forEach(node => node.removeAttribute("id"));
   clone.setAttribute("aria-hidden", "true");
   clone.style.pointerEvents = "none";
-
   return clone.outerHTML;
 }
 
 function houseRender() {
   const room = houseRoom();
+  const world = $("#house-world");
+  if (!world) return;
+
+  world.dataset.room = room;
+  world.classList.toggle("is-editing", houseEditMode);
+
+  const architecture = $(".house-architecture");
+  if (architecture) architecture.dataset.room = room;
 
   const furniture = houseState.furniture
-    .filter(item => item.room === room && HOUSE_ITEMS[item.id])
+    .filter(item => item.room === room && HOUSE_ITEMS[item.type])
     .map(item => {
-      const info = HOUSE_ITEMS[item.id];
-
+      const info = HOUSE_ITEMS[item.type];
       return `
         <button type="button"
           class="house-item furniture ${houseEditMode ? "editable" : ""}"
           data-house-kind="furniture"
-          data-house-id="${item.id}"
-          style="left:${item.x}%;top:${item.y}%"
-          aria-label="${info.name}">
-          ${houseFurnitureSVG(info.art)}
+          data-house-id="${escapeHTML(item.id)}"
+          style="left:${item.x}%;top:${item.y}%;--item-width:${info.width}%;--item-height:${info.height}%"
+          aria-label="${escapeHTML(info.name)}">
+          ${houseFurnitureSVG(item.type)}
+          <span class="house-item-label">${escapeHTML(info.name)}</span>
         </button>
       `;
     }).join("");
@@ -1925,16 +2012,18 @@ function houseRender() {
     .map(id => {
       const p = houseState.characters[id];
       const name = id === "aldi" ? "Aldi" : "Liza";
+      const isCurrent = (id === "liza" ? "Liza" : "Aldi") === MY_NAME;
 
       return `
-        <div class="house-item character ${houseEditMode ? "editable" : ""}"
+        <button type="button"
+          class="house-item character ${isCurrent ? "is-player" : ""} ${houseEditMode ? "editable" : ""}"
           data-house-kind="character"
           data-house-id="${id}"
           style="left:${p.x}%;top:${p.y}%"
           aria-label="${name}">
           ${houseCharacterArt(id)}
           <span class="house-name">${name}</span>
-        </div>
+        </button>
       `;
     }).join("");
 
@@ -1945,16 +2034,13 @@ function houseRender() {
       style="left:${p.x}%;top:${p.y}%"
       aria-label="Lumi">
       <div class="lumi-house-sprite">${houseLumiArt()}</div>
+      <span class="house-name">Lumi</span>
     </div>
   ` : "";
 
-  const furnitureContainer = $("#house-furniture");
-  const charactersContainer = $("#house-characters");
-  const lumiContainer = $("#house-lumi");
-
-  if (furnitureContainer) furnitureContainer.innerHTML = furniture;
-  if (charactersContainer) charactersContainer.innerHTML = characters;
-  if (lumiContainer) lumiContainer.innerHTML = lumi;
+  $("#house-furniture").innerHTML = furniture;
+  $("#house-characters").innerHTML = characters;
+  $("#house-lumi").innerHTML = lumi;
 
   const editButton = $("#house-edit");
   if (editButton) {
@@ -1963,12 +2049,12 @@ function houseRender() {
       : "✦ Tata furnitur";
   }
 
-  const status = $("#house-status");
-  if (status) {
-    status.textContent = houseEditMode
-      ? "Mode dekorasi aktif — geser furnitur, Aldi, Liza, atau Lumi."
-      : `${room === "living" ? "Living Room" : "Bedroom"} · Rumah Aldi, Liza & Lumi`;
-  }
+  setStatus(
+    "#house-status",
+    houseEditMode
+      ? "Mode dekorasi aktif — seret furnitur, karakter, atau Lumi."
+      : `${room === "living" ? "Living Room" : "Bedroom"} · Tap lantai untuk berjalan.`
+  );
 }
 
 async function houseLoad() {
@@ -2016,8 +2102,7 @@ async function houseLoad() {
       houseRender();
     } catch (error) {
       console.error("House load error:", error);
-      const status = $("#house-status");
-      if (status) status.textContent = "Rumah belum berhasil dimuat. Periksa koneksi.";
+      setStatus("#house-status", "Rumah belum berhasil dimuat. Periksa koneksi.");
     } finally {
       houseBusy = false;
       houseLoadRequest = null;
@@ -2028,7 +2113,7 @@ async function houseLoad() {
 }
 
 async function houseSave() {
-  if (!currentUser || !coupleId) return;
+  if (!currentUser || !coupleId || houseBusy) return;
 
   const serialized = JSON.stringify(houseState);
   if (serialized === houseLastSaved) return;
@@ -2045,13 +2130,10 @@ async function houseSave() {
     if (error) throw error;
 
     houseLastSaved = serialized;
-
-    const status = $("#house-status");
-    if (status) status.textContent = "Rumah berhasil disimpan ♡";
+    setStatus("#house-status", "Rumah berhasil disimpan ♡");
   } catch (error) {
     console.error("House save error:", error);
-    const status = $("#house-status");
-    if (status) status.textContent = "Gagal menyimpan perubahan rumah.";
+    setStatus("#house-status", "Gagal menyimpan perubahan rumah.");
   }
 }
 
@@ -2060,50 +2142,120 @@ function scheduleHouseSave() {
   houseSaveTimer = setTimeout(houseSave, 700);
 }
 
-function moveHouseCharacter(dx, dy) {
-  if (!currentUser || houseEditMode) return;
+function housePlayerId() {
+  return String(MY_NAME).toLowerCase() === "liza" ? "liza" : "aldi";
+}
 
-  const id = String(MY_NAME).toLowerCase() === "liza" ? "liza" : "aldi";
+function houseStopWalking() {
+  houseWalkToken++;
+  if (houseWalkFrame) cancelAnimationFrame(houseWalkFrame);
+  houseWalkFrame = null;
+}
+
+function houseWalkTo(clientX, clientY) {
+  if (!currentUser || houseEditMode || houseBusy) return;
+
+  const world = $("#house-world");
+  if (!world) return;
+
+  const rect = world.getBoundingClientRect();
+  const id = housePlayerId();
   const person = houseState.characters[id];
 
   if (person.room !== houseRoom()) {
-    const status = $("#house-status");
-    if (status) status.textContent = "Karakter kamu berada di ruangan lain.";
+    setStatus("#house-status", "Karakter kamu berada di ruangan lain.");
     return;
   }
 
-  person.x = Math.max(5, Math.min(95, person.x + dx));
-  person.y = Math.max(18, Math.min(95, person.y + dy));
+  // Batasi area gerak agar karakter tidak menembus dinding.
+  const x = houseClamp(((clientX - rect.left) / rect.width) * 100, 8, 92);
+  const y = houseClamp(((clientY - rect.top) / rect.height) * 100, 25, 91);
+
+  const target = $("#house-walk-target");
+  if (target) {
+    target.style.left = `${x}%`;
+    target.style.top = `${y}%`;
+    target.classList.remove("visible");
+    void target.offsetWidth;
+    target.classList.add("visible");
+  }
+
+  houseStopWalking();
+  const token = houseWalkToken;
+  const startX = person.x;
+  const startY = person.y;
+  const distance = Math.hypot(x - startX, y - startY);
+  const duration = Math.max(180, Math.min(900, distance * 18));
+  const startTime = performance.now();
+
+  const animate = now => {
+    if (token !== houseWalkToken) return;
+
+    const progress = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    person.x = startX + (x - startX) * eased;
+    person.y = startY + (y - startY) * eased;
+
+    const character = $(
+      `#house-characters [data-house-id="${id}"]`
+    );
+
+    if (character) {
+      character.style.left = `${person.x}%`;
+      character.style.top = `${person.y}%`;
+      character.classList.toggle("walking", progress < 1);
+      character.classList.toggle("facing-left", x < startX);
+    }
+
+    if (progress < 1) {
+      houseWalkFrame = requestAnimationFrame(animate);
+    } else {
+      houseWalkFrame = null;
+      scheduleHouseSave();
+    }
+  };
+
+  houseWalkFrame = requestAnimationFrame(animate);
+}
+
+function houseChangeRoom(room) {
+  if (!["living", "bedroom"].includes(room)) return;
+
+  houseStopWalking();
+  if ($("#house-room")) $("#house-room").value = room;
+
+  const id = housePlayerId();
+  const person = houseState.characters[id];
+
+  // Tempatkan karakter dekat pintu di ruangan tujuan.
+  person.room = room;
+  person.x = room === "living" ? 68 : 31;
+  person.y = 70;
 
   houseRender();
   scheduleHouseSave();
 }
 
-const houseDirections = {
-  "#joy-up": [0, -3],
-  "#joy-down": [0, 3],
-  "#joy-left": [-3, 0],
-  "#joy-right": [3, 0]
-};
-
-Object.entries(houseDirections).forEach(([selector, direction]) => {
-  $(selector)?.addEventListener("click", () => {
-    moveHouseCharacter(direction[0], direction[1]);
-  });
+$("#house-room")?.addEventListener("change", () => {
+  houseStopWalking();
+  houseRender();
 });
 
-$("#house-room")?.addEventListener("change", houseRender);
-
 $("#house-edit")?.addEventListener("click", () => {
+  houseStopWalking();
   houseEditMode = !houseEditMode;
   houseDrag = null;
   houseRender();
 });
 
-/*
- * Drag system: don't re-render while dragging.
- * This prevents the selected element disappearing under the pointer.
- */
+$$(".house-door[data-door]").forEach(door => {
+  door.addEventListener("click", event => {
+    event.stopPropagation();
+    houseChangeRoom(door.dataset.door);
+  });
+});
+
 const houseWorld = $("#house-world");
 
 houseWorld?.addEventListener("pointerdown", event => {
@@ -2115,11 +2267,14 @@ houseWorld?.addEventListener("pointerdown", event => {
   const kind = element.dataset.houseKind;
   const id = element.dataset.houseId || null;
 
-  if (kind === "furniture" && !HOUSE_ITEMS[id]) return;
-  if (kind === "character" && !["aldi", "liza"].includes(id)) return;
+  if (kind === "furniture" &&
+      !houseState.furniture.some(item => item.id === id)) return;
+  if (kind === "character" &&
+      !["aldi", "liza"].includes(id)) return;
   if (!["furniture", "character", "lumi"].includes(kind)) return;
 
   event.preventDefault();
+  houseStopWalking();
 
   houseDrag = {
     kind,
@@ -2138,12 +2293,8 @@ houseWorld?.addEventListener("pointermove", event => {
   if (!houseDrag || event.pointerId !== houseDrag.pointerId) return;
 
   const rect = houseWorld.getBoundingClientRect();
-  const x = Math.max(5, Math.min(
-    95, ((event.clientX - rect.left) / rect.width) * 100
-  ));
-  const y = Math.max(18, Math.min(
-    95, ((event.clientY - rect.top) / rect.height) * 100
-  ));
+  const x = houseClamp(((event.clientX - rect.left) / rect.width) * 100, 5, 95);
+  const y = houseClamp(((event.clientY - rect.top) / rect.height) * 100, 18, 95);
 
   let target;
 
@@ -2162,7 +2313,6 @@ houseWorld?.addEventListener("pointermove", event => {
   target.room = houseRoom();
   houseDrag.moved = true;
 
-  // Update the existing element directly, preserving pointer capture.
   if (houseDrag.element?.isConnected) {
     houseDrag.element.style.left = `${x}%`;
     houseDrag.element.style.top = `${y}%`;
@@ -2186,7 +2336,15 @@ houseWorld?.addEventListener("pointerup", finishHouseDrag);
 houseWorld?.addEventListener("pointercancel", finishHouseDrag);
 houseWorld?.addEventListener("lostpointercapture", finishHouseDrag);
 
-/* Preserve the existing page navigation. */
+// Tap lantai berjalan; tap furnitur tidak membuat karakter berjalan.
+houseWorld?.addEventListener("click", event => {
+  if (houseEditMode || event.target.closest(
+    "[data-house-kind], .house-door"
+  )) return;
+
+  houseWalkTo(event.clientX, event.clientY);
+});
+
 const houseOriginalShowPage = showPage;
 
 showPage = function(name) {
@@ -2206,6 +2364,8 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("beforeunload", () => {
   clearTimeout(houseSaveTimer);
-  if (houseSaveTimer) houseSave();
+  if (houseSaveTimer && currentUser && coupleId) {
+    houseSave();
+  }
 });
 
