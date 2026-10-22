@@ -1702,3 +1702,351 @@ document.addEventListener("visibilitychange", () => {
     syncAll();
   }
 });
+
+
+/* ==========================================
+   OUR HOUSE — POSISI DAN SINKRONISASI
+========================================== */
+
+const HOUSE_DEFAULT = {
+  characters: {
+    aldi: { x: 20, y: 72, room: "living" },
+    liza: { x: 35, y: 72, room: "living" }
+  },
+  furniture: [
+    { id: "sofa", x: 28, y: 70, room: "living" },
+    { id: "plant", x: 82, y: 60, room: "living" },
+    { id: "bed", x: 50, y: 65, room: "bedroom" },
+    { id: "desk", x: 72, y: 65, room: "bedroom" }
+  ],
+  lumi: { x: 55, y: 80, room: "living" }
+};
+
+const HOUSE_ITEMS = {
+  sofa: { icon: "🛋️", name: "Sofa" },
+  plant: { icon: "🪴", name: "Tanaman" },
+  bed: { icon: "🛏️", name: "Tempat tidur" },
+  desk: { icon: "🪑", name: "Meja" }
+};
+
+let houseState = JSON.parse(JSON.stringify(HOUSE_DEFAULT));
+let houseEditMode = false;
+let houseBusy = false;
+let houseSaveTimer = null;
+let houseSyncTimer = null;
+let houseDrag = null;
+let houseLastSaved = "";
+
+function houseRoom() {
+  return $("#house-room")?.value || "living";
+}
+
+function normalizeHouseState(value) {
+  const next = JSON.parse(JSON.stringify(HOUSE_DEFAULT));
+
+  if (!value || typeof value !== "object") return next;
+
+  for (const name of ["aldi", "liza"]) {
+    const p = value.characters?.[name];
+    if (p && Number.isFinite(Number(p.x)) &&
+        Number.isFinite(Number(p.y)) &&
+        ["living", "bedroom"].includes(p.room)) {
+      next.characters[name] = {
+        x: Math.max(5, Math.min(95, Number(p.x))),
+        y: Math.max(10, Math.min(95, Number(p.y))),
+        room: p.room
+      };
+    }
+  }
+
+  if (Array.isArray(value.furniture)) {
+    for (const item of next.furniture) {
+      const saved = value.furniture.find(x => x.id === item.id);
+      if (!saved) continue;
+      item.x = Math.max(5, Math.min(95, Number(saved.x) || item.x));
+      item.y = Math.max(10, Math.min(95, Number(saved.y) || item.y));
+      if (["living", "bedroom"].includes(saved.room)) {
+        item.room = saved.room;
+      }
+    }
+  }
+
+  const lumi = value.lumi;
+  if (lumi && Number.isFinite(Number(lumi.x)) &&
+      Number.isFinite(Number(lumi.y)) &&
+      ["living", "bedroom"].includes(lumi.room)) {
+    next.lumi = {
+      x: Math.max(5, Math.min(95, Number(lumi.x))),
+      y: Math.max(10, Math.min(95, Number(lumi.y))),
+      room: lumi.room
+    };
+  }
+
+  return next;
+}
+
+function houseRender() {
+  const room = houseRoom();
+
+  const furnitureHTML = houseState.furniture
+    .filter(item => item.room === room)
+    .map(item => {
+      const info = HOUSE_ITEMS[item.id];
+      if (!info) return "";
+      return `
+        <button type="button"
+          class="house-item furniture ${houseEditMode ? "editable" : ""}"
+          data-house-kind="furniture" data-house-id="${item.id}"
+          style="left:${item.x}%;top:${item.y}%"
+          aria-label="${info.name}">
+          ${info.icon}
+        </button>
+      `;
+    }).join("");
+
+  const people = [
+    {
+      id: "aldi",
+      name: "Aldi",
+      icon: "🧑🏻"
+    },
+    {
+      id: "liza",
+      name: "Liza",
+      icon: "👩🏻"
+    }
+  ];
+
+  const charactersHTML = people
+    .filter(person => houseState.characters[person.id].room === room)
+    .map(person => {
+      const p = houseState.characters[person.id];
+      const name = person.id === "aldi" ? "Aldi" : "Liza";
+      return `
+        <div class="house-item character"
+          data-house-kind="character" data-house-id="${person.id}"
+          style="left:${p.x}%;top:${p.y}%">
+          ${person.icon}
+          <span class="house-name">${name}</span>
+        </div>
+      `;
+    }).join("");
+
+  const lumi = houseState.lumi;
+  const lumiHTML = lumi.room === room ? `
+    <div class="house-item lumi-house"
+      data-house-kind="lumi"
+      style="left:${lumi.x}%;top:${lumi.y}%"
+      aria-label="Lumi">🐱</div>
+  ` : "";
+
+  setHTML("#house-furniture", furnitureHTML);
+  setHTML("#house-characters", charactersHTML);
+  setHTML("#house-lumi", lumiHTML);
+
+  $$("#house-furniture .house-item").forEach(el => {
+    el.classList.toggle("selected", houseEditMode);
+  });
+
+  setText("#house-edit", houseEditMode
+    ? "✓ Selesai menata"
+    : "✦ Tata furnitur");
+
+  setStatus("#house-status", houseEditMode
+    ? "Mode tata aktif: tarik furnitur untuk memindahkannya."
+    : "Rumah kecil kalian ♡");
+}
+
+async function houseLoad() {
+  if (!currentUser || !coupleId || houseBusy) return;
+  houseBusy = true;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("couple_house")
+      .select("house_state,updated_at")
+      .eq("couple_id", coupleId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      const { error: insertError } = await supabaseClient
+        .from("couple_house")
+        .insert({
+          couple_id: coupleId,
+          house_state: HOUSE_DEFAULT
+        });
+
+      if (insertError && insertError.code !== "23505") {
+        throw insertError;
+      }
+
+      const retry = await supabaseClient
+        .from("couple_house")
+        .select("house_state,updated_at")
+        .eq("couple_id", coupleId)
+        .single();
+
+      if (retry.error) throw retry.error;
+
+      houseState = normalizeHouseState(retry.data.house_state);
+      houseLastSaved = JSON.stringify(houseState);
+    } else {
+      houseState = normalizeHouseState(data.house_state);
+      houseLastSaved = JSON.stringify(houseState);
+    }
+
+    houseRender();
+  } catch (error) {
+    console.error("House load error:", error);
+    setStatus("#house-status",
+      `Rumah belum tersambung: ${error.message || "Coba lagi."}`);
+  } finally {
+    houseBusy = false;
+  }
+}
+
+async function houseSave() {
+  if (!currentUser || !coupleId) return;
+
+  const serialized = JSON.stringify(houseState);
+  if (serialized === houseLastSaved) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("couple_house")
+      .update({
+        house_state: houseState,
+        updated_at: new Date().toISOString()
+      })
+      .eq("couple_id", coupleId);
+
+    if (error) throw error;
+
+    houseLastSaved = serialized;
+    setStatus("#house-status", "Rumah tersimpan bersama ♡");
+  } catch (error) {
+    console.error("House save error:", error);
+    setStatus("#house-status",
+      `Gagal menyimpan rumah: ${error.message || "Coba lagi."}`);
+  }
+}
+
+function scheduleHouseSave() {
+  clearTimeout(houseSaveTimer);
+  houseSaveTimer = setTimeout(houseSave, 700);
+}
+
+function moveHouseCharacter(dx, dy) {
+  if (!currentUser || houseEditMode) return;
+
+  const id = MY_NAME.toLowerCase() === "liza" ? "liza" : "aldi";
+  const p = houseState.characters[id];
+
+  if (p.room !== houseRoom()) return;
+
+  p.x = Math.max(5, Math.min(95, p.x + dx));
+  p.y = Math.max(10, Math.min(95, p.y + dy));
+
+  houseRender();
+  scheduleHouseSave();
+}
+
+const houseMoveButtons = {
+  "#joy-up": [0, -3],
+  "#joy-down": [0, 3],
+  "#joy-left": [-3, 0],
+  "#joy-right": [3, 0]
+};
+
+Object.entries(houseMoveButtons).forEach(([selector, [dx, dy]]) => {
+  $(selector)?.addEventListener("click", () => {
+    moveHouseCharacter(dx, dy);
+  });
+});
+
+$("#house-room")?.addEventListener("change", houseRender);
+
+$("#house-edit")?.addEventListener("click", () => {
+  houseEditMode = !houseEditMode;
+  houseRender();
+});
+
+$("#house-world")?.addEventListener("pointerdown", event => {
+  const item = event.target.closest("[data-house-kind]");
+  if (!item || !houseEditMode || item.dataset.houseKind === "character") {
+    return;
+  }
+
+  if (item.dataset.houseKind === "lumi") return;
+
+  event.preventDefault();
+
+  const world = $("#house-world");
+  const rect = world.getBoundingClientRect();
+
+  houseDrag = {
+    id: item.dataset.houseId,
+    kind: item.dataset.houseKind,
+    pointerId: event.pointerId,
+    rect
+  };
+
+  item.setPointerCapture?.(event.pointerId);
+});
+
+$("#house-world")?.addEventListener("pointermove", event => {
+  if (!houseDrag || event.pointerId !== houseDrag.pointerId) return;
+
+  const { rect, id, kind } = houseDrag;
+  const x = Math.max(5, Math.min(95,
+    ((event.clientX - rect.left) / rect.width) * 100));
+  const y = Math.max(10, Math.min(95,
+    ((event.clientY - rect.top) / rect.height) * 100));
+
+  if (kind === "furniture") {
+    const item = houseState.furniture.find(f => f.id === id);
+    if (item) {
+      item.x = x;
+      item.y = y;
+      houseRender();
+    }
+  }
+});
+
+function finishHouseDrag(event) {
+  if (!houseDrag) return;
+  if (event && event.pointerId !== houseDrag.pointerId) return;
+  houseDrag = null;
+  scheduleHouseSave();
+}
+
+$("#house-world")?.addEventListener("pointerup", finishHouseDrag);
+$("#house-world")?.addEventListener("pointercancel", finishHouseDrag);
+
+const previousShowPage = showPage;
+
+showPage = function(name) {
+  previousShowPage(name);
+
+  if (name === "house") {
+    houseLoad();
+  }
+};
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && currentUser && coupleId &&
+      $("#page-house")?.classList.contains("active")) {
+    houseLoad();
+  }
+});
+
+window.addEventListener("beforeunload", () => {
+  if (houseSaveTimer) {
+    clearTimeout(houseSaveTimer);
+    houseSave();
+  }
+});
+
+
