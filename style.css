@@ -1124,3 +1124,219 @@ body.theme-blue { --bg:#0d1421; --panel:#151f30; --panel2:#1f2c40; --accent:#9dd
   cursor: wait;
   opacity: 0.65;
 }
+
+/* OUR HOUSE */
+.house-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.house-toolbar label {
+  width: 100%;
+}
+
+.house-toolbar select {
+  flex: 1;
+  min-width: 140px;
+}
+
+.house-world {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 560px;
+  overflow: hidden;
+  border: 1px solid #504461;
+  border-radius: 22px;
+  background: #f8dce9;
+  box-shadow: 0 12px 35px #0002;
+  touch-action: pan-y;
+}
+
+.house-sky {
+  position: absolute;
+  inset: 0 0 48%;
+  overflow: hidden;
+  background: linear-gradient(#d7e8ff, #fff0e5);
+}
+
+.house-cloud {
+  position: absolute;
+  color: #fff;
+  font-size: 38px;
+  opacity: .9;
+}
+
+.cloud-one { top: 12%; left: 12%; }
+.cloud-two { top: 26%; right: 16%; }
+
+.house-window {
+  position: absolute;
+  top: 12%;
+  right: 10%;
+  display: grid;
+  place-items: center;
+  width: 22%;
+  aspect-ratio: 1;
+  border: 7px solid #fff7ec;
+  border-radius: 45% 45% 10px 10px;
+  background: #ffdf91;
+  color: #fff;
+  font-size: 32px;
+}
+
+.house-wall {
+  position: absolute;
+  inset: 32% 0 0;
+  background: #f7e6d3;
+}
+
+.house-floor {
+  position: absolute;
+  inset: 68% 0 0;
+  border-top: 7px solid #d7aa91;
+  background: repeating-linear-gradient(
+    0deg,
+    #dcb99e 0,
+    #dcb99e 24px,
+    #e8cbb2 25px,
+    #e8cbb2 27px
+  );
+}
+
+.house-picture,
+.house-clock {
+  position: absolute;
+  top: 12%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 48px;
+  border: 5px solid #fff8ec;
+  border-radius: 7px;
+  background: #e7c5e6;
+  color: #a05e9e;
+}
+
+.house-picture { left: 12%; }
+.house-clock {
+  right: 12%;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff0bd;
+}
+
+#house-furniture,
+#house-characters,
+#house-lumi {
+  position: absolute;
+  inset: 0;
+}
+
+.house-item {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: clamp(28px, 8vw, 43px);
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.house-item.selected {
+  outline: 2px dashed #a77fc5;
+  background: #fff8;
+}
+
+.house-item.character {
+  z-index: 4;
+  font-size: 36px;
+}
+
+.house-item.character .house-name {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  border-radius: 9px;
+  background: #fffaf0;
+  color: #55445f;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.house-item.furniture {
+  z-index: 2;
+}
+
+.house-item.lumi-house {
+  z-index: 5;
+}
+
+.house-controls {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #38304d;
+  border-radius: 18px;
+  background: #1b1729;
+}
+
+.house-joystick {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.house-joystick > div {
+  display: flex;
+  gap: 8px;
+}
+
+.house-joystick button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #5a4c71;
+  border-radius: 14px;
+  background: #282139;
+  color: #f8f4ff;
+  font-size: 18px;
+  touch-action: manipulation;
+}
+
+.house-joystick button:active {
+  background: #52489c;
+  transform: scale(.96);
+}
+
+.house-controls p {
+  text-align: center;
+  margin-bottom: 0;
+}
+
+#house-status {
+  min-height: 20px;
+}
+
+@media (min-width: 600px) {
+  .house-world {
+    max-width: 480px;
+    margin-inline: auto;
+  }
+}
+
+
