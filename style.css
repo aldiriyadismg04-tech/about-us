@@ -2313,3 +2313,104 @@ button.house-item {
 }
 
 
+/* ===== HOUSE PIXEL ART FIX ===== */
+
+/* Ukuran area rumah */
+#house-world {
+  overflow: hidden;
+}
+
+/* Ubin lebih kecil dan rapat */
+#house-world .house-floor {
+  background-size: 46px 46px !important;
+}
+
+/* Hilangkan nama furnitur berukuran raksasa */
+#house-furniture .house-item,
+#house-characters .house-item,
+#house-lumi .house-item {
+  font-size: 0;
+  line-height: 1;
+}
+
+/* Ukuran furnitur */
+#house-furniture .house-item {
+  width: 64px !important;
+  height: 58px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+#house-furniture .house-item svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+/* Karakter tidak membesar karena aturan teks global */
+#house-characters .house-item,
+#house-lumi .house-item {
+  width: 48px !important;
+  height: 58px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Nama karakter tetap kecil dan terbaca */
+#house-characters .character-name,
+#house-lumi .character-name {
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Mode tata furnitur */
+#house-world.is-editing #house-furniture .house-item {
+  cursor: grab;
+  touch-action: none;
+}
+
+#house-world.is-editing #house-furniture .house-item:active {
+  cursor: grabbing;
+}
+
+/* Jangan biarkan SVG atau furnitur keluar dari area rumah */
+#house-furniture,
+#house-characters,
+#house-lumi {
+  overflow: hidden;
+}
+
+/* Penyesuaian layar HP */
+@media (max-width: 600px) {
+  #house-world .house-floor {
+    background-size: 34px 34px !important;
+  }
+
+  #house-furniture .house-item {
+    width: 48px !important;
+    height: 44px !important;
+  }
+
+  #house-characters .house-item,
+  #house-lumi .house-item {
+    width: 38px !important;
+    height: 46px !important;
+  }
+
+  #house-characters .character-name,
+  #house-lumi .character-name {
+    font-size: 10px;
+  }
+}
+
+
+
