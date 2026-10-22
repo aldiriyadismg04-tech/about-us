@@ -283,64 +283,70 @@
     </section>
 
     <!-- OUR HOUSE -->
-    <section id="page-house" class="page">
-      <button class="back" data-page="home" type="button">← Kembali</button>
+    
+<section id="page-house" class="page">
+  <button class="back" data-page="home" type="button">← Kembali</button>
 
-      <div class="subhero">
-        <p class="eyebrow">A PLACE WE CALL HOME</p>
-        <h1>Our House 🏡</h1>
-        <p class="muted">Rumah kecil untuk Aldi, Liza, dan Lumi ♡</p>
-      </div>
+  <div class="subhero">
+    <p class="eyebrow">A PLACE WE CALL HOME</p>
+    <h1>Our House</h1>
+    <p class="muted">Rumah kecil untuk Aldi, Liza, dan Lumi ♡</p>
+  </div>
 
-      <div class="house-toolbar">
-        <label for="house-room">Ruangan</label>
-        <select id="house-room">
-          <option value="living">Living Room</option>
-          <option value="bedroom">Bedroom</option>
-        </select>
+  <div class="house-toolbar">
+    <label for="house-room">Ruangan</label>
+    <select id="house-room">
+      <option value="living">Living Room</option>
+      <option value="bedroom">Bedroom</option>
+    </select>
+    <button id="house-edit" class="secondary" type="button">
+      ✦ Tata furnitur
+    </button>
+  </div>
 
-        <button id="house-edit" class="secondary" type="button">
-          ✦ Tata furnitur
-        </button>
-      </div>
-
-      <div id="house-world" class="house-world">
-        <div class="house-sky">
-          <span class="house-cloud cloud-one">☁</span>
-          <span class="house-cloud cloud-two">☁</span>
-          <span class="house-window">☀</span>
+  <div id="house-world" class="house-world">
+    <div class="house-architecture" aria-hidden="true">
+      <div class="house-roof-trim"></div>
+      <div class="house-wallpaper">
+        <div class="house-window">
+          <span class="window-glow"></span>
+          <span class="window-cross"></span>
         </div>
-
-        <div class="house-wall">
-          <div class="house-picture">♡</div>
-          <div class="house-clock">◷</div>
-          <div class="house-floor"></div>
-
-          <div id="house-furniture"></div>
-          <div id="house-characters"></div>
-          <div id="house-lumi"></div>
-        </div>
+        <div class="house-wall-art">♡</div>
+        <div class="house-wall-clock">◷</div>
       </div>
-
-      <p id="house-status" class="muted small" aria-live="polite">
-        Menyiapkan rumah kalian...
-      </p>
-
-      <div class="house-controls">
-        <div class="house-joystick">
-          <button id="joy-up" type="button" aria-label="Bergerak ke atas">▲</button>
-          <div>
-            <button id="joy-left" type="button" aria-label="Bergerak ke kiri">◀</button>
-            <button id="joy-down" type="button" aria-label="Bergerak ke bawah">▼</button>
-            <button id="joy-right" type="button" aria-label="Bergerak ke kanan">▶</button>
-          </div>
-        </div>
-        <p class="muted tiny">
-          Gunakan tombol arah untuk bergerak. Aktifkan mode tata furnitur
-          untuk memilih dan memindahkan barang.
-        </p>
+      <div class="house-wainscot"></div>
+      <div class="house-floor">
+        <div class="floor-rug-decoration"></div>
       </div>
-    </section>
+      <button class="house-door door-living" data-door="bedroom"
+        type="button" aria-label="Masuk ke bedroom">
+        <span></span>
+      </button>
+      <button class="house-door door-bedroom" data-door="living"
+        type="button" aria-label="Kembali ke living room">
+        <span></span>
+      </button>
+      <div class="house-room-plaque"></div>
+    </div>
+
+    <div id="house-furniture"></div>
+    <div id="house-characters"></div>
+    <div id="house-lumi"></div>
+    <div id="house-walk-target" aria-hidden="true"></div>
+  </div>
+
+  <div class="house-bottom-panel">
+    <p id="house-status" class="muted small" aria-live="polite">
+      Menyiapkan rumah kalian...
+    </p>
+    <p class="house-hint">
+      Tap lantai untuk berjalan. Tap pintu untuk berpindah ruangan.
+      Aktifkan mode tata furnitur untuk memindahkan barang.
+    </p>
+  </div>
+</section>
+
 
     <!-- STREAK -->
     <section id="page-streak" class="page">
