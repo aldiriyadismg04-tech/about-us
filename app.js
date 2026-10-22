@@ -1704,7 +1704,8 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ==========================================
-   OUR HOUSE — PIXEL HOME + TAP TO WALK
+   OUR HOUSE — PIXEL HOME + FURNITURE BAG
+   SVG PIXEL ART • DRAG • SUPABASE SAVE
 ========================================== */
 
 const HOUSE_DEFAULT = {
@@ -1726,21 +1727,72 @@ const HOUSE_DEFAULT = {
     { id: "plant2", type: "plant", x: 17, y: 67, room: "bedroom" },
     { id: "nightstand", type: "nightstand", x: 57, y: 39, room: "bedroom" }
   ],
+  inventory: {
+    chair: 6, table: 3, vase: 5, flower: 6,
+    sofa: 2, plant: 6, tv: 2, rug: 3, bed: 2,
+    desk: 2, wardrobe: 2, lamp: 4, bookshelf: 3,
+    nightstand: 3, piano: 1, guitar: 2, fridge: 1,
+    stove: 1, dishcabinet: 2, sink: 1, counter: 2,
+    microwave: 1, washingmachine: 1, toilet: 1,
+    bathtub: 1, mirror: 3, clock: 2, painting: 4,
+    computer: 2, laptop: 2, speaker: 2, aquarium: 1,
+    dumbbell: 2, treadmill: 1, yoga: 2, ball: 3,
+    bookshelfSmall: 2, trashbin: 2, refrigeratorSmall: 1,
+    guitarAmp: 1, plantSmall: 5, candle: 4, cushion: 5,
+    petbed: 1, catTree: 1, doorplant: 2
+  },
   lumi: { x: 58, y: 76, room: "living" }
 };
 
+/* width/height are percentages relative to the house world.
+   Each sprite is drawn in SVG pixel-art style. */
 const HOUSE_ITEMS = {
-  sofa: { name: "Sofa", width: 16, height: 17 },
-  plant: { name: "Tanaman", width: 11, height: 15 },
-  table: { name: "Meja", width: 14, height: 13 },
-  tv: { name: "Televisi", width: 13, height: 12 },
-  rug: { name: "Karpet", width: 22, height: 17 },
-  bed: { name: "Tempat tidur", width: 20, height: 24 },
-  desk: { name: "Meja kerja", width: 15, height: 17 },
-  wardrobe: { name: "Lemari", width: 15, height: 21 },
-  lamp: { name: "Lampu lantai", width: 9, height: 16 },
-  bookshelf: { name: "Rak buku", width: 13, height: 20 },
-  nightstand: { name: "Nakas", width: 11, height: 12 }
+  sofa:             { name: "Sofa", width: 16, height: 17 },
+  plant:            { name: "Tanaman", width: 11, height: 15 },
+  table:            { name: "Meja", width: 14, height: 13 },
+  tv:               { name: "Televisi", width: 13, height: 12 },
+  rug:              { name: "Karpet", width: 22, height: 17 },
+  bed:              { name: "Tempat tidur", width: 20, height: 24 },
+  desk:             { name: "Meja kerja", width: 15, height: 17 },
+  wardrobe:         { name: "Lemari pakaian", width: 15, height: 21 },
+  lamp:             { name: "Lampu lantai", width: 9, height: 16 },
+  bookshelf:        { name: "Rak buku", width: 13, height: 20 },
+  nightstand:       { name: "Nakas", width: 11, height: 12 },
+  chair:            { name: "Kursi", width: 10, height: 12 },
+  vase:             { name: "Vas bunga", width: 8, height: 11 },
+  flower:           { name: "Bunga", width: 9, height: 12 },
+  piano:            { name: "Piano", width: 17, height: 19 },
+  guitar:           { name: "Gitar", width: 10, height: 16 },
+  fridge:           { name: "Kulkas", width: 13, height: 23 },
+  stove:            { name: "Kompor", width: 14, height: 12 },
+  dishcabinet:      { name: "Lemari piring", width: 15, height: 21 },
+  sink:             { name: "Wastafel", width: 13, height: 13 },
+  counter:          { name: "Meja dapur", width: 16, height: 13 },
+  microwave:        { name: "Microwave", width: 11, height: 10 },
+  washingmachine:   { name: "Mesin cuci", width: 13, height: 16 },
+  toilet:           { name: "Toilet", width: 11, height: 13 },
+  bathtub:          { name: "Bak mandi", width: 18, height: 12 },
+  mirror:           { name: "Cermin", width: 10, height: 15 },
+  clock:            { name: "Jam dinding", width: 8, height: 8 },
+  painting:         { name: "Lukisan", width: 12, height: 12 },
+  computer:         { name: "Komputer", width: 12, height: 13 },
+  laptop:           { name: "Laptop", width: 11, height: 8 },
+  speaker:          { name: "Speaker", width: 9, height: 13 },
+  aquarium:         { name: "Akuarium", width: 14, height: 13 },
+  dumbbell:         { name: "Dumbbell", width: 12, height: 7 },
+  treadmill:        { name: "Treadmill", width: 16, height: 14 },
+  yoga:             { name: "Matras yoga", width: 15, height: 10 },
+  ball:             { name: "Bola", width: 9, height: 9 },
+  bookshelfSmall:   { name: "Rak buku kecil", width: 11, height: 14 },
+  trashbin:         { name: "Tempat sampah", width: 9, height: 12 },
+  refrigeratorSmall:{ name: "Kulkas mini", width: 10, height: 16 },
+  guitarAmp:        { name: "Amplifier gitar", width: 10, height: 11 },
+  plantSmall:       { name: "Tanaman kecil", width: 8, height: 10 },
+  candle:           { name: "Lilin", width: 6, height: 9 },
+  cushion:          { name: "Bantal", width: 10, height: 8 },
+  petbed:           { name: "Tempat tidur Lumi", width: 12, height: 9 },
+  catTree:          { name: "Pohon kucing", width: 12, height: 18 },
+  doorplant:        { name: "Tanaman pot", width: 10, height: 13 }
 };
 
 let houseState = JSON.parse(JSON.stringify(HOUSE_DEFAULT));
@@ -1752,6 +1804,11 @@ let houseLastSaved = "";
 let houseLoadRequest = null;
 let houseWalkFrame = null;
 let houseWalkToken = 0;
+let houseSelectedItem = null;
+
+/* ==========================================
+   HELPERS
+========================================== */
 
 function houseRoom() {
   return $("#house-room")?.value || "living";
@@ -1773,9 +1830,12 @@ function houseNormalizePosition(saved, fallback) {
     x: houseClamp(Number(saved.x), 5, 95),
     y: houseClamp(Number(saved.y), 18, 95),
     room: ["living", "bedroom"].includes(saved.room)
-      ? saved.room
-      : fallback.room
+      ? saved.room : fallback.room
   };
+}
+
+function houseId(type) {
+  return `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 function normalizeHouseState(value) {
@@ -1789,15 +1849,16 @@ function normalizeHouseState(value) {
     );
   }
 
+  // Save lama tetap didukung, tanpa memunculkan kembali
+  // barang yang sudah diletakkan ke dalam rumah.
   if (Array.isArray(value.furniture)) {
-    // Pertahankan furnitur lama, item duplikat, dan furnitur baru.
-    const savedItems = value.furniture
+    next.furniture = value.furniture
       .filter(item => item && typeof item === "object")
       .map((item, index) => {
         const legacy = HOUSE_ITEMS[item.id] ? item.id : null;
         const type = HOUSE_ITEMS[item.type]
           ? item.type
-          : legacy === "plant2" ? "plant" : legacy;
+          : item.id === "plant2" ? "plant" : legacy;
 
         if (!type || !HOUSE_ITEMS[type]) return null;
 
@@ -1807,25 +1868,35 @@ function normalizeHouseState(value) {
           x: houseClamp(Number(item.x) || 50, 5, 95),
           y: houseClamp(Number(item.y) || 50, 18, 95),
           room: ["living", "bedroom"].includes(item.room)
-            ? item.room : "living"
+            ? item.room : "living",
+          zIndex: Number(item.zIndex) || 1
         };
-      })
-      .filter(Boolean);
+      }).filter(Boolean);
+  }
 
-    const ids = new Set(savedItems.map(item => item.id));
-    next.furniture = savedItems;
+  // Inventory baru hanya ditambahkan untuk save lama
+  // yang belum memiliki data inventory.
+  next.inventory = {
+    ...HOUSE_DEFAULT.inventory,
+    ...(value.inventory && typeof value.inventory === "object"
+      ? value.inventory : {})
+  };
 
-    // Tambahkan default baru yang belum ada pada save lama.
-    HOUSE_DEFAULT.furniture.forEach(item => {
-      if (!ids.has(item.id)) next.furniture.push({ ...item });
-    });
+  for (const type of Object.keys(HOUSE_ITEMS)) {
+    const count = Number(next.inventory[type]);
+    next.inventory[type] = Number.isFinite(count)
+      ? Math.max(0, Math.floor(count)) : 0;
   }
 
   next.lumi = houseNormalizePosition(value.lumi, next.lumi);
   return next;
 }
 
-/* Pixel-art furniture sprites */
+/* ==========================================
+   PIXEL SVG SPRITES
+   Each furniture type has its own SVG drawing.
+========================================== */
+
 function houseFurnitureSVG(type) {
   const sprites = {
     sofa: `
@@ -1838,8 +1909,7 @@ function houseFurnitureSVG(type) {
       <rect x="13" y="30" width="18" height="13" fill="#e7a9bd"/>
       <rect x="33" y="30" width="18" height="13" fill="#d891ab"/>
       <rect x="12" y="47" width="6" height="7" fill="#5c3b30"/>
-      <rect x="46" y="47" width="6" height="7" fill="#5c3b30"/>
-    `,
+      <rect x="46" y="47" width="6" height="7" fill="#5c3b30"/>`,
     plant: `
       <rect x="23" y="37" width="19" height="16" fill="#9a5d42"/>
       <rect x="20" y="35" width="25" height="5" fill="#d18b5d"/>
@@ -1847,30 +1917,26 @@ function houseFurnitureSVG(type) {
       <rect x="13" y="17" width="18" height="14" fill="#6e9e60"/>
       <rect x="35" y="12" width="17" height="15" fill="#47784d"/>
       <rect x="23" y="6" width="16" height="15" fill="#8dbd72"/>
-      <rect x="35" y="25" width="14" height="12" fill="#669557"/>
-    `,
+      <rect x="35" y="25" width="14" height="12" fill="#669557"/>`,
     table: `
       <rect x="8" y="18" width="48" height="26" fill="#765035"/>
       <rect x="12" y="20" width="40" height="19" fill="#bd8750"/>
       <rect x="15" y="43" width="6" height="10" fill="#70472e"/>
       <rect x="43" y="43" width="6" height="10" fill="#70472e"/>
       <rect x="25" y="24" width="14" height="9" fill="#f0d8a5"/>
-      <rect x="29" y="26" width="6" height="5" fill="#d28d9e"/>
-    `,
+      <rect x="29" y="26" width="6" height="5" fill="#d28d9e"/>`,
     tv: `
       <rect x="8" y="12" width="48" height="34" fill="#594339"/>
       <rect x="12" y="16" width="40" height="25" fill="#2f4e5d"/>
       <rect x="16" y="20" width="12" height="7" fill="#86b8b0"/>
       <rect x="30" y="29" width="17" height="8" fill="#648d8e"/>
-      <rect x="24" y="46" width="16" height="6" fill="#765035"/>
-    `,
+      <rect x="24" y="46" width="16" height="6" fill="#765035"/>`,
     rug: `
       <rect x="4" y="11" width="56" height="41" fill="#9b4f69"/>
       <rect x="9" y="16" width="46" height="31" fill="#d38a9d"/>
       <rect x="14" y="21" width="36" height="21" fill="#a95e7c"/>
       <rect x="20" y="26" width="24" height="11" fill="#f1d6b6"/>
-      <rect x="27" y="29" width="10" height="5" fill="#d38a9d"/>
-    `,
+      <rect x="27" y="29" width="10" height="5" fill="#d38a9d"/>`,
     bed: `
       <rect x="8" y="5" width="48" height="52" fill="#76513c"/>
       <rect x="12" y="9" width="40" height="44" fill="#c28aa8"/>
@@ -1878,8 +1944,7 @@ function houseFurnitureSVG(type) {
       <rect x="33" y="12" width="16" height="12" fill="#fff0d8"/>
       <rect x="14" y="27" width="36" height="22" fill="#9c8ac9"/>
       <rect x="14" y="27" width="36" height="5" fill="#e8b8cf"/>
-      <rect x="11" y="51" width="42" height="5" fill="#76513c"/>
-    `,
+      <rect x="11" y="51" width="42" height="5" fill="#76513c"/>`,
     desk: `
       <rect x="7" y="20" width="50" height="26" fill="#805436"/>
       <rect x="11" y="22" width="42" height="19" fill="#c18b55"/>
@@ -1887,23 +1952,20 @@ function houseFurnitureSVG(type) {
       <rect x="44" y="44" width="7" height="10" fill="#70472e"/>
       <rect x="23" y="8" width="23" height="15" fill="#4b626f"/>
       <rect x="26" y="11" width="17" height="9" fill="#b5d9d3"/>
-      <rect x="29" y="23" width="10" height="3" fill="#594339"/>
-    `,
+      <rect x="29" y="23" width="10" height="3" fill="#594339"/>`,
     wardrobe: `
       <rect x="10" y="5" width="44" height="51" fill="#704a34"/>
       <rect x="14" y="9" width="17" height="43" fill="#bc8652"/>
       <rect x="33" y="9" width="17" height="43" fill="#d09a61"/>
       <rect x="28" y="9" width="4" height="43" fill="#704a34"/>
       <rect x="25" y="28" width="3" height="6" fill="#f3d49b"/>
-      <rect x="36" y="28" width="3" height="6" fill="#f3d49b"/>
-    `,
+      <rect x="36" y="28" width="3" height="6" fill="#f3d49b"/>`,
     lamp: `
       <rect x="27" y="25" width="10" height="27" fill="#805436"/>
       <rect x="18" y="12" width="28" height="18" fill="#e9c98e"/>
       <rect x="22" y="7" width="20" height="7" fill="#fff0c4"/>
       <rect x="20" y="28" width="24" height="4" fill="#bd8750"/>
-      <rect x="21" y="51" width="22" height="5" fill="#704a34"/>
-    `,
+      <rect x="21" y="51" width="22" height="5" fill="#704a34"/>`,
     bookshelf: `
       <rect x="9" y="5" width="46" height="52" fill="#765035"/>
       <rect x="14" y="10" width="36" height="12" fill="#d1a06b"/>
@@ -1915,11 +1977,10 @@ function houseFurnitureSVG(type) {
       <rect x="42" y="12" width="5" height="9" fill="#d9b56c"/>
       <rect x="18" y="26" width="8" height="10" fill="#c96e87"/>
       <rect x="28" y="28" width="6" height="8" fill="#7f91c4"/>
-      <rect x="36" y="25" width="10" height="11" fill="#648d73"/>
+      <rect x="36" y="25" width="10" height="11" fill="#648d73" />
       <rect x="18" y="41" width="6" height="10" fill="#d9b56c"/>
       <rect x="27" y="43" width="9" height="8" fill="#c96e87"/>
-      <rect x="39" y="41" width="8" height="10" fill="#8b7ec0"/>
-    `,
+      <rect x="39" y="41" width="8" height="10" fill="#8b7ec0"/>`,
     nightstand: `
       <rect x="12" y="20" width="40" height="29" fill="#765035"/>
       <rect x="15" y="23" width="34" height="10" fill="#d1a06b"/>
@@ -1927,34 +1988,292 @@ function houseFurnitureSVG(type) {
       <rect x="29" y="27" width="5" height="3" fill="#f3d49b"/>
       <rect x="29" y="38" width="5" height="3" fill="#f3d49b"/>
       <rect x="15" y="48" width="5" height="6" fill="#704a34"/>
-      <rect x="44" y="48" width="5" height="6" fill="#704a34"/>
-    `
+      <rect x="44" y="48" width="5" height="6" fill="#704a34"/>`,
+
+    chair: `
+      <rect x="19" y="8" width="26" height="23" fill="#a86f45"/>
+      <rect x="22" y="11" width="20" height="17" fill="#d3a06a"/>
+      <rect x="18" y="29" width="28" height="8" fill="#8d5838"/>
+      <rect x="21" y="37" width="5" height="17" fill="#69432e"/>
+      <rect x="39" y="37" width="5" height="17" fill="#69432e"/>`,
+    vase: `
+      <rect x="25" y="31" width="15" height="21" fill="#8e8bd0"/>
+      <rect x="22" y="27" width="21" height="6" fill="#b7b4ee"/>
+      <rect x="28" y="23" width="9" height="6" fill="#8e8bd0"/>
+      <rect x="16" y="9" width="5" height="15" fill="#527c4d"/>
+      <rect x="40" y="8" width="5" height="17" fill="#527c4d"/>
+      <rect x="10" y="12" width="14" height="9" fill="#e77caa"/>
+      <rect x="37" y="11" width="15" height="9" fill="#f2b65e"/>
+      <rect x="23" y="5" width="17" height="10" fill="#e77caa"/>`,
+    flower: `
+      <rect x="30" y="23" width="4" height="29" fill="#4f8c52"/>
+      <rect x="18" y="31" width="14" height="4" fill="#5da65b"/>
+      <rect x="34" y="36" width="12" height="4" fill="#5da65b"/>
+      <rect x="25" y="8" width="14" height="14" fill="#e779aa"/>
+      <rect x="19" y="13" width="9" height="9" fill="#e779aa"/>
+      <rect x="36" y="13" width="9" height="9" fill="#e779aa"/>
+      <rect x="28" y="11" width="8" height="8" fill="#ffd568"/>
+      <rect x="24" y="49" width="16" height="7" fill="#a86b49"/>`,
+    piano: `
+      <rect x="5" y="12" width="54" height="34" fill="#292936"/>
+      <rect x="9" y="17" width="46" height="23" fill="#4a4b5c"/>
+      <rect x="10" y="19" width="44" height="12" fill="#f5eee2"/>
+      <rect x="14" y="19" width="4" height="8" fill="#292936"/>
+      <rect x="23" y="19" width="4" height="8" fill="#292936"/>
+      <rect x="32" y="19" width="4" height="8" fill="#292936"/>
+      <rect x="41" y="19" width="4" height="8" fill="#292936"/>
+      <rect x="50" y="19" width="4" height="8" fill="#292936"/>
+      <rect x="9" y="44" width="5" height="10" fill="#292936"/>
+      <rect x="50" y="44" width="5" height="10" fill="#292936"/>`,
+    guitar: `
+      <rect x="28" y="8" width="8" height="25" fill="#b77942"/>
+      <rect x="24" y="26" width="16" height="16" fill="#dca34e"/>
+      <rect x="19" y="32" width="13" height="15" fill="#c78536"/>
+      <rect x="28" y="36" width="13" height="12" fill="#e4b65f"/>
+      <rect x="29" y="7" width="6" height="6" fill="#745039"/>
+      <rect x="29" y="12" width="2" height="30" fill="#f8e7b7"/>
+      <rect x="33" y="12" width="2" height="30" fill="#f8e7b7"/>
+      <rect x="28" y="34" width="7" height="7" fill="#6b4930"/>`,
+    fridge: `
+      <rect x="12" y="4" width="40" height="53" fill="#c5d9dc"/>
+      <rect x="15" y="7" width="34" height="22" fill="#edf4f2"/>
+      <rect x="15" y="32" width="34" height="21" fill="#b3cbd0"/>
+      <rect x="42" y="12" width="3" height="11" fill="#64828b"/>
+      <rect x="42" y="36" width="3" height="11" fill="#64828b"/>
+      <rect x="9" y="55" width="8" height="3" fill="#6b747b"/>
+      <rect x="47" y="55" width="8" height="3" fill="#6b747b"/>`,
+    stove: `
+      <rect x="8" y="19" width="48" height="30" fill="#aab7bc"/>
+      <rect x="11" y="22" width="42" height="23" fill="#e2e6e5"/>
+      <rect x="14" y="25" width="15" height="9" fill="#414951"/>
+      <rect x="35" y="25" width="15" height="9" fill="#414951"/>
+      <rect x="17" y="27" width="9" height="5" fill="#777f86"/>
+      <rect x="38" y="27" width="9" height="5" fill="#777f86"/>
+      <rect x="16" y="37" width="32" height="6" fill="#b7c3c5"/>
+      <rect x="18" y="49" width="5" height="7" fill="#68747a"/>
+      <rect x="43" y="49" width="5" height="7" fill="#68747a"/>`,
+    dishcabinet: `
+      <rect x="8" y="5" width="48" height="52" fill="#966c4a"/>
+      <rect x="12" y="9" width="40" height="22" fill="#d2b58c"/>
+      <rect x="12" y="34" width="40" height="18" fill="#b98a5d"/>
+      <rect x="16" y="12" width="32" height="15" fill="#b7dce0"/>
+      <rect x="20" y="15" width="8" height="9" fill="#f6f0dc"/>
+      <rect x="31" y="15" width="8" height="9" fill="#f6f0dc"/>
+      <rect x="16" y="38" width="32" height="10" fill="#d5ad7b"/>
+      <rect x="28" y="39" width="4" height="7" fill="#765035"/>`,
+    sink: `
+      <rect x="8" y="25" width="48" height="24" fill="#a77b52"/>
+      <rect x="12" y="21" width="40" height="9" fill="#d7d7d1"/>
+      <rect x="17" y="22" width="30" height="6" fill="#9ccbd2"/>
+      <rect x="28" y="11" width="7" height="12" fill="#879ca2"/>
+      <rect x="30" y="8" width="12" height="4" fill="#879ca2"/>
+      <rect x="14" y="49" width="6" height="7" fill="#70472e"/>
+      <rect x="44" y="49" width="6" height="7" fill="#70472e"/>`,
+    counter: `
+      <rect x="6" y="23" width="52" height="25" fill="#9b6a43"/>
+      <rect x="6" y="19" width="52" height="8" fill="#e5d2ae"/>
+      <rect x="12" y="30" width="40" height="15" fill="#c58f5c"/>
+      <rect x="15" y="48" width="5" height="7" fill="#70472e"/>
+      <rect x="44" y="48" width="5" height="7" fill="#70472e"/>`,
+    microwave: `
+      <rect x="7" y="15" width="50" height="32" fill="#aab6bc"/>
+      <rect x="11" y="19" width="34" height="23" fill="#45555c"/>
+      <rect x="14" y="22" width="28" height="17" fill="#83b7bd"/>
+      <rect x="48" y="21" width="5" height="4" fill="#596b73"/>
+      <rect x="48" y="29" width="5" height="4" fill="#596b73"/>
+      <rect x="48" y="37" width="5" height="4" fill="#596b73"/>`,
+    washingmachine: `
+      <rect x="9" y="6" width="46" height="49" fill="#c3d6dc"/>
+      <rect x="14" y="11" width="36" height="7" fill="#edf3ef"/>
+      <rect x="19" y="24" width="26" height="24" fill="#789ba9"/>
+      <rect x="22" y="27" width="20" height="18" fill="#b9e1e1"/>
+      <rect x="17" y="13" width="4" height="3" fill="#667b86"/>
+      <rect x="26" y="13" width="14" height="3" fill="#8aa5ad"/>`,
+    toilet: `
+      <rect x="14" y="10" width="36" height="19" fill="#e9eee9"/>
+      <rect x="18" y="13" width="28" height="13" fill="#c9d9d8"/>
+      <rect x="17" y="29" width="30" height="13" fill="#f5f5eb"/>
+      <rect x="22" y="38" width="20" height="15" fill="#d8e5e0"/>
+      <rect x="18" y="49" width="28" height="5" fill="#b4c8c7"/>`,
+    bathtub: `
+      <rect x="5" y="20" width="54" height="26" fill="#d5e4e1"/>
+      <rect x="9" y="24" width="46" height="16" fill="#8fc6d0"/>
+      <rect x="12" y="27" width="40" height="10" fill="#bce5e5"/>
+      <rect x="8" y="45" width="6" height="9" fill="#879ca2"/>
+      <rect x="50" y="45" width="6" height="9" fill="#879ca2"/>`,
+    mirror: `
+      <rect x="13" y="5" width="38" height="50" fill="#8b6548"/>
+      <rect x="17" y="9" width="30" height="42" fill="#9bd2d9"/>
+      <rect x="21" y="13" width="8" height="34" fill="#d8f0eb"/>
+      <rect x="34" y="19" width="8" height="25" fill="#c0e6e7"/>`,
+    clock: `
+      <rect x="13" y="13" width="38" height="38" fill="#8e6849"/>
+      <rect x="17" y="17" width="30" height="30" fill="#f1dfb6"/>
+      <rect x="31" y="21" width="3" height="12" fill="#564539"/>
+      <rect x="32" y="31" width="11" height="3" fill="#564539"/>
+      <rect x="28" y="20" width="3" height="3" fill="#564539"/>
+      <rect x="28" y="41" width="3" height="3" fill="#564539"/>`,
+    painting: `
+      <rect x="5" y="8" width="54" height="46" fill="#865e3f"/>
+      <rect x="10" y="13" width="44" height="36" fill="#9dc7c5"/>
+      <rect x="10" y="34" width="44" height="15" fill="#527e67"/>
+      <rect x="13" y="28" width="13" height="7" fill="#e8c77d"/>
+      <rect x="28" y="21" width="11" height="12" fill="#e6a2ae"/>
+      <rect x="39" y="31" width="12" height="4" fill="#d3e4ca"/>`,
+    computer: `
+      <rect x="9" y="7" width="46" height="32" fill="#48545e"/>
+      <rect x="13" y="11" width="38" height="24" fill="#83b8c1"/>
+      <rect x="18" y="15" width="11" height="7" fill="#d6e9d5"/>
+      <rect x="31" y="23" width="15" height="7" fill="#6a91a1"/>
+      <rect x="28" y="39" width="8" height="8" fill="#687781"/>
+      <rect x="19" y="47" width="27" height="4" fill="#687781"/>`,
+    laptop: `
+      <rect x="12" y="10" width="40" height="25" fill="#4b5860"/>
+      <rect x="16" y="14" width="32" height="17" fill="#83c4c8"/>
+      <rect x="7" y="36" width="50" height="9" fill="#9baeb1"/>
+      <rect x="17" y="38" width="30" height="4" fill="#d5dedb"/>`,
+    speaker: `
+      <rect x="14" y="5" width="36" height="52" fill="#4b4147"/>
+      <rect x="18" y="9" width="28" height="44" fill="#76616a"/>
+      <rect x="22" y="14" width="20" height="17" fill="#332f3b"/>
+      <rect x="25" y="17" width="14" height="11" fill="#8c8aa5"/>
+      <rect x="22" y="35" width="20" height="14" fill="#332f3b"/>
+      <rect x="27" y="39" width="10" height="7" fill="#9994ac"/>`,
+    aquarium: `
+      <rect x="6" y="9" width="52" height="38" fill="#557b88"/>
+      <rect x="10" y="13" width="44" height="30" fill="#80c9d2"/>
+      <rect x="10" y="34" width="44" height="9" fill="#d3bd84"/>
+      <rect x="19" y="22" width="10" height="5" fill="#f1a55c"/>
+      <rect x="27" y="20" width="4" height="9" fill="#f1a55c"/>
+      <rect x="38" y="27" width="9" height="4" fill="#e8c85d"/>
+      <rect x="41" y="24" width="4" height="9" fill="#e8c85d"/>
+      <rect x="8" y="47" width="48" height="7" fill="#765035"/>`,
+    dumbbell: `
+      <rect x="8" y="24" width="48" height="10" fill="#777f8e"/>
+      <rect x="5" y="16" width="10" height="26" fill="#424956"/>
+      <rect x="49" y="16" width="10" height="26" fill="#424956"/>
+      <rect x="8" y="20" width="5" height="18" fill="#9ba4b5"/>
+      <rect x="51" y="20" width="5" height="18" fill="#9ba4b5"/>`,
+    treadmill: `
+      <rect x="7" y="35" width="50" height="10" fill="#414853"/>
+      <rect x="12" y="39" width="40" height="4" fill="#8d9da7"/>
+      <rect x="15" y="14" width="5" height="27" fill="#5c6673"/>
+      <rect x="14" y="10" width="27" height="5" fill="#5c6673"/>
+      <rect x="35" y="15" width="5" height="9" fill="#8399a8"/>
+      <rect x="44" y="42" width="5" height="12" fill="#414853"/>`,
+    yoga: `
+      <rect x="7" y="18" width="50" height="30" fill="#7777b6"/>
+      <rect x="11" y="22" width="42" height="22" fill="#a4a3dc"/>
+      <rect x="16" y="26" width="32" height="14" fill="#c9c7ee"/>
+      <rect x="7" y="18" width="7" height="30" fill="#54538c"/>`,
+    ball: `
+      <rect x="18" y="10" width="28" height="38" fill="#e17b71"/>
+      <rect x="12" y="16" width="40" height="26" fill="#e17b71"/>
+      <rect x="24" y="11" width="16" height="36" fill="#f4d36d"/>
+      <rect x="13" y="23" width="38" height="12" fill="#f4d36d"/>
+      <rect x="28" y="19" width="8" height="21" fill="#6e9ec5"/>`,
+    bookshelfSmall: `
+      <rect x="12" y="8" width="40" height="48" fill="#8c5c3a"/>
+      <rect x="16" y="13" width="32" height="10" fill="#d3a06a"/>
+      <rect x="16" y="27" width="32" height="10" fill="#d3a06a"/>
+      <rect x="16" y="41" width="32" height="10" fill="#d3a06a"/>
+      <rect x="20" y="14" width="6" height="8" fill="#8c83c7"/>
+      <rect x="29" y="14" width="7" height="8" fill="#d77e98"/>
+      <rect x="38" y="28" width="7" height="8" fill="#79a67b"/>`,
+    trashbin: `
+      <rect x="16" y="15" width="32" height="38" fill="#79a4a0"/>
+      <rect x="12" y="11" width="40" height="6" fill="#526f71"/>
+      <rect x="21" y="21" width="4" height="25" fill="#a7cfca"/>
+      <rect x="30" y="21" width="4" height="25" fill="#a7cfca"/>
+      <rect x="39" y="21" width="4" height="25" fill="#a7cfca"/>`,
+    refrigeratorSmall: `
+      <rect x="13" y="7" width="38" height="48" fill="#d8e7e4"/>
+      <rect x="17" y="11" width="30" height="20" fill="#f1f4ec"/>
+      <rect x="17" y="34" width="30" height="17" fill="#b5d0d0"/>
+      <rect x="40" y="16" width="3" height="9" fill="#66838b"/>
+      <rect x="40" y="38" width="3" height="8" fill="#66838b"/>`,
+    guitarAmp: `
+      <rect x="9" y="10" width="46" height="43" fill="#40363d"/>
+      <rect x="13" y="14" width="38" height="35" fill="#6e5662"/>
+      <rect x="19" y="20" width="26" height="22" fill="#332f3b"/>
+      <rect x="23" y="24" width="18" height="14" fill="#a08b9d"/>
+      <rect x="17" y="16" width="4" height="4" fill="#f0cf83"/>
+      <rect x="25" y="16" width="4" height="4" fill="#f0cf83"/>`,
+    plantSmall: `
+      <rect x="22" y="39" width="20" height="14" fill="#b77c54"/>
+      <rect x="19" y="36" width="26" height="5" fill="#d6a276"/>
+      <rect x="30" y="18" width="5" height="20" fill="#4c8050"/>
+      <rect x="15" y="17" width="17" height="13" fill="#78a86d"/>
+      <rect x="34" y="12" width="15" height="15" fill="#4d8b55"/>
+      <rect x="25" y="7" width="14" height="14" fill="#9cc978"/>`,
+    candle: `
+      <rect x="23" y="17" width="18" height="35" fill="#f0dfbd"/>
+      <rect x="27" y="10" width="10" height="8" fill="#f4b65d"/>
+      <rect x="30" y="5" width="4" height="8" fill="#fff1a3"/>
+      <rect x="19" y="50" width="26" height="5" fill="#c79b6a"/>`,
+    cushion: `
+      <rect x="9" y="14" width="46" height="34" fill="#c77e9e"/>
+      <rect x="14" y="19" width="36" height="24" fill="#e5a8c1"/>
+      <rect x="20" y="25" width="24" height="12" fill="#f5d0df"/>
+      <rect x="27" y="28" width="10" height="6" fill="#c77e9e"/>`,
+    petbed: `
+      <rect x="7" y="20" width="50" height="30" fill="#d0a078"/>
+      <rect x="12" y="24" width="40" height="22" fill="#e8c5a1"/>
+      <rect x="17" y="29" width="30" height="12" fill="#b8a4d9"/>
+      <rect x="25" y="31" width="14" height="8" fill="#e8dff5"/>`,
+    catTree: `
+      <rect x="28" y="19" width="8" height="35" fill="#a87953"/>
+      <rect x="10" y="45" width="44" height="10" fill="#d2a579"/>
+      <rect x="18" y="29" width="28" height="8" fill="#c9996d"/>
+      <rect x="15" y="9" width="34" height="8" fill="#d9b08a"/>
+      <rect x="21" y="17" width="22" height="12" fill="#8b694d"/>
+      <rect x="24" y="20" width="16" height="8" fill="#bda0d8"/>`,
+    doorplant: `
+      <rect x="22" y="37" width="20" height="16" fill="#a86f49"/>
+      <rect x="18" y="34" width="28" height="5" fill="#d4a174"/>
+      <rect x="30" y="18" width="5" height="18" fill="#527e4c"/>
+      <rect x="15" y="17" width="18" height="14" fill="#77a967"/>
+      <rect x="35" y="12" width="17" height="15" fill="#4e854f"/>
+      <rect x="25" y="6" width="14" height="14" fill="#9acb79"/>`
   };
 
   return `
     <svg class="pixel-sprite" viewBox="0 0 64 60"
-      aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-      <rect x="7" y="53" width="50" height="4" fill="#49342c" opacity=".3"/>
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true" shape-rendering="crispEdges">
+      <rect x="7" y="54" width="50" height="4"
+        fill="#49342c" opacity=".3"/>
       ${sprites[type] || ""}
     </svg>
   `;
 }
 
+/* ==========================================
+   CHARACTERS
+========================================== */
+
 function houseCharacterArt(id) {
   const isLiza = id === "liza";
   return `
     <svg class="pixel-person" viewBox="0 0 32 42"
-      aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="16" cy="39" rx="10" ry="2.5" fill="#49342c" opacity=".4"/>
-      <rect x="8" y="5" width="16" height="15" fill="${isLiza ? "#59413d" : "#60483d"}"/>
-      <rect x="7" y="10" width="18" height="10" fill="${isLiza ? "#59413d" : "#60483d"}"/>
+      aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+      shape-rendering="crispEdges">
+      <ellipse cx="16" cy="39" rx="10" ry="2.5"
+        fill="#49342c" opacity=".4"/>
+      <rect x="8" y="5" width="16" height="15"
+        fill="${isLiza ? "#59413d" : "#60483d"}"/>
+      <rect x="7" y="10" width="18" height="10"
+        fill="${isLiza ? "#59413d" : "#60483d"}"/>
       <rect x="10" y="10" width="12" height="11" fill="#f1c5a5"/>
       <rect x="11" y="14" width="3" height="3" fill="#49342c"/>
       <rect x="19" y="14" width="3" height="3" fill="#49342c"/>
       <rect x="14" y="18" width="5" height="2" fill="#c77b83"/>
-      <rect x="6" y="22" width="20" height="12" fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
-      <rect x="3" y="23" width="5" height="10" fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
-      <rect x="24" y="23" width="5" height="10" fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
+      <rect x="6" y="22" width="20" height="12"
+        fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
+      <rect x="3" y="23" width="5" height="10"
+        fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
+      <rect x="24" y="23" width="5" height="10"
+        fill="${isLiza ? "#eaa5c0" : "#8f91c9"}"/>
       <rect x="8" y="33" width="6" height="7" fill="#5c453a"/>
       <rect x="18" y="33" width="6" height="7" fill="#5c453a"/>
       <rect x="7" y="39" width="8" height="2" fill="#43332f"/>
@@ -1973,11 +2292,86 @@ function houseLumiArt() {
 
   const clone = originalSVG.cloneNode(true);
   clone.removeAttribute("id");
-  clone.querySelectorAll("[id]").forEach(node => node.removeAttribute("id"));
+  clone.querySelectorAll("[id]").forEach(node =>
+    node.removeAttribute("id")
+  );
   clone.setAttribute("aria-hidden", "true");
   clone.style.pointerEvents = "none";
   return clone.outerHTML;
 }
+
+/* ==========================================
+   INVENTORY / FURNITURE BAG
+========================================== */
+
+function houseRenderBag() {
+  const bag = $("#house-bag-items");
+  if (!bag) return;
+
+  bag.innerHTML = Object.entries(HOUSE_ITEMS).map(([type, info]) => {
+    const count = Number(houseState.inventory?.[type] || 0);
+    const selected = houseSelectedItem === type;
+
+    return `
+      <button type="button"
+        class="house-bag-item ${selected ? "selected" : ""}"
+        data-bag-type="${type}"
+        ${count <= 0 ? "disabled" : ""}
+        aria-label="${escapeHTML(info.name)}, tersisa ${count}">
+        <span class="house-bag-sprite">
+          ${houseFurnitureSVG(type)}
+        </span>
+        <span class="house-bag-name">${escapeHTML(info.name)}</span>
+        <span class="house-bag-count">×${count}</span>
+      </button>
+    `;
+  }).join("");
+
+  bag.querySelectorAll("[data-bag-type]").forEach(button => {
+    button.addEventListener("click", () => {
+      const type = button.dataset.bagType;
+      if (!houseState.inventory[type]) return;
+
+      houseSelectedItem = type;
+
+      const room = houseRoom();
+      const placed = houseState.furniture.filter(item => item.room === room);
+      const offset = (placed.length % 5) * 5;
+
+      houseState.furniture.push({
+        id: houseId(type),
+        type,
+        x: houseClamp(40 + offset, 10, 90),
+        y: houseClamp(55 + offset, 25, 88),
+        room,
+        zIndex: 1
+      });
+
+      houseState.inventory[type]--;
+      houseSelectedItem = null;
+
+      houseRender();
+      houseRenderBag();
+      scheduleHouseSave();
+
+      setStatus(
+        "#house-status",
+        `${HOUSE_ITEMS[type].name} diletakkan! Aktifkan Tata Furnitur untuk menggesernya.`
+      );
+    });
+  });
+}
+
+$("#house-bag-toggle")?.addEventListener("click", () => {
+  const bag = $("#house-bag");
+  if (!bag) return;
+  bag.hidden = !bag.hidden;
+  if (!bag.hidden) houseRenderBag();
+});
+
+/* ==========================================
+   RENDER HOUSE
+========================================== */
 
 function houseRender() {
   const room = houseRoom();
@@ -1999,7 +2393,7 @@ function houseRender() {
           class="house-item furniture ${houseEditMode ? "editable" : ""}"
           data-house-kind="furniture"
           data-house-id="${escapeHTML(item.id)}"
-          style="left:${item.x}%;top:${item.y}%;--item-width:${info.width}%;--item-height:${info.height}%"
+          style="left:${item.x}%;top:${item.y}%;z-index:${item.zIndex || 1};--item-width:${info.width}%;--item-height:${info.height}%"
           aria-label="${escapeHTML(info.name)}">
           ${houseFurnitureSVG(item.type)}
           <span class="house-item-label">${escapeHTML(info.name)}</span>
@@ -2012,7 +2406,8 @@ function houseRender() {
     .map(id => {
       const p = houseState.characters[id];
       const name = id === "aldi" ? "Aldi" : "Liza";
-      const isCurrent = (id === "liza" ? "Liza" : "Aldi") === MY_NAME;
+      const isCurrent =
+        String(MY_NAME).toLowerCase() === id;
 
       return `
         <button type="button"
@@ -2052,10 +2447,16 @@ function houseRender() {
   setStatus(
     "#house-status",
     houseEditMode
-      ? "Mode dekorasi aktif — seret furnitur, karakter, atau Lumi."
-      : `${room === "living" ? "Living Room" : "Bedroom"} · Tap lantai untuk berjalan.`
+      ? "Mode dekorasi aktif — seret barang untuk mengatur posisinya."
+      : `${room === "living" ? "Living Room" : "Bedroom"} · Ketuk lantai untuk berjalan.`
   );
+
+  houseRenderBag();
 }
+
+/* ==========================================
+   LOAD / SAVE SUPABASE
+========================================== */
 
 async function houseLoad() {
   if (!currentUser || !coupleId) return;
@@ -2146,6 +2547,10 @@ function housePlayerId() {
   return String(MY_NAME).toLowerCase() === "liza" ? "liza" : "aldi";
 }
 
+/* ==========================================
+   TAP TO WALK
+========================================== */
+
 function houseStopWalking() {
   houseWalkToken++;
   if (houseWalkFrame) cancelAnimationFrame(houseWalkFrame);
@@ -2167,7 +2572,6 @@ function houseWalkTo(clientX, clientY) {
     return;
   }
 
-  // Batasi area gerak agar karakter tidak menembus dinding.
   const x = houseClamp(((clientX - rect.left) / rect.width) * 100, 8, 92);
   const y = houseClamp(((clientY - rect.top) / rect.height) * 100, 25, 91);
 
@@ -2181,6 +2585,7 @@ function houseWalkTo(clientX, clientY) {
   }
 
   houseStopWalking();
+
   const token = houseWalkToken;
   const startX = person.x;
   const startY = person.y;
@@ -2219,6 +2624,10 @@ function houseWalkTo(clientX, clientY) {
   houseWalkFrame = requestAnimationFrame(animate);
 }
 
+/* ==========================================
+   ROOM CHANGES
+========================================== */
+
 function houseChangeRoom(room) {
   if (!["living", "bedroom"].includes(room)) return;
 
@@ -2228,7 +2637,6 @@ function houseChangeRoom(room) {
   const id = housePlayerId();
   const person = houseState.characters[id];
 
-  // Tempatkan karakter dekat pintu di ruangan tujuan.
   person.room = room;
   person.x = room === "living" ? 68 : 31;
   person.y = 70;
@@ -2255,6 +2663,10 @@ $$(".house-door[data-door]").forEach(door => {
     houseChangeRoom(door.dataset.door);
   });
 });
+
+/* ==========================================
+   DRAG FURNITURE / CHARACTERS / LUMI
+========================================== */
 
 const houseWorld = $("#house-world");
 
@@ -2336,7 +2748,7 @@ houseWorld?.addEventListener("pointerup", finishHouseDrag);
 houseWorld?.addEventListener("pointercancel", finishHouseDrag);
 houseWorld?.addEventListener("lostpointercapture", finishHouseDrag);
 
-// Tap lantai berjalan; tap furnitur tidak membuat karakter berjalan.
+// Ketuk lantai untuk berjalan; ketuk barang tidak memicu jalan.
 houseWorld?.addEventListener("click", event => {
   if (houseEditMode || event.target.closest(
     "[data-house-kind], .house-door"
@@ -2344,6 +2756,10 @@ houseWorld?.addEventListener("click", event => {
 
   houseWalkTo(event.clientX, event.clientY);
 });
+
+/* ==========================================
+   PAGE / AUTO LOAD
+========================================== */
 
 const houseOriginalShowPage = showPage;
 
@@ -2368,4 +2784,3 @@ window.addEventListener("beforeunload", () => {
     houseSave();
   }
 });
-
