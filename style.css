@@ -1338,5 +1338,510 @@ body.theme-blue { --bg:#0d1421; --panel:#151f30; --panel2:#1f2c40; --accent:#9dd
     margin-inline: auto;
   }
 }
+/* =====================================================
+   OUR LITTLE UNIVERSE — OUR HOUSE
+   Cozy pastel 2D house · Responsive mobile design
+   Tempelkan di bagian PALING BAWAH style.css
+===================================================== */
 
+:root {
+  --house-cream: #fff8ed;
+  --house-wall: #f8e8d4;
+  --house-floor: #d9a875;
+  --house-floor-light: #e9c49a;
+  --house-pink: #f2b9c8;
+  --house-pink-light: #ffe0e8;
+  --house-lavender: #c9b8ef;
+  --house-green: #a9c9a5;
+  --house-green-dark: #6f9976;
+  --house-brown: #916746;
+  --house-ink: #59483f;
+  --house-shadow: rgba(103, 72, 51, 0.15);
+}
+
+/* ---------- HALAMAN RUMAH ---------- */
+
+#page-house {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  padding-bottom: 28px;
+  color: var(--house-ink);
+}
+
+#page-house.active {
+  animation: house-page-enter 0.35s ease both;
+}
+
+@keyframes house-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#page-house h1,
+#page-house h2,
+#page-house h3 {
+  color: var(--house-ink);
+}
+
+#page-house .house-heading {
+  margin-bottom: 18px;
+}
+
+#page-house .house-heading h2 {
+  margin: 0 0 6px;
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+#page-house .house-heading p {
+  margin: 0;
+  color: #987e6b;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ---------- KONTROL RUANGAN ---------- */
+
+#page-house .house-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+#house-room,
+#house-edit {
+  min-height: 43px;
+  border: 1px solid #ead8c5;
+  border-radius: 14px;
+  background: #fffaf3;
+  color: var(--house-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  box-shadow: 0 3px 0 rgba(145, 103, 70, 0.06);
+}
+
+#house-room {
+  flex: 1;
+  min-width: 130px;
+  cursor: pointer;
+}
+
+#house-edit {
+  cursor: pointer;
+  background: #f8e6ed;
+  border-color: #efceda;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+#house-edit:hover {
+  background: #f4d5e0;
+  transform: translateY(-2px);
+}
+
+#house-room:focus-visible,
+#house-edit:focus-visible,
+#page-house button:focus-visible {
+  outline: 3px solid #c9b8ef;
+  outline-offset: 3px;
+}
+
+/* ---------- AREA DUNIA RUMAH ---------- */
+
+#house-world {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 280px;
+  max-height: 510px;
+  overflow: hidden;
+  border: 5px solid #fffaf2;
+  border-radius: 23px;
+  background: #f8e8d4;
+  box-shadow:
+    0 0 0 1px #ead5bd,
+    0 12px 30px var(--house-shadow);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Dinding pastel */
+
+#house-world::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0 0 29%;
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(255,255,255,0.62),
+      transparent 68%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 57px,
+      rgba(177, 133, 100, 0.07) 58px,
+      transparent 60px
+    ),
+    #f8e9d7;
+}
+
+/* Lantai kayu */
+
+#house-world::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30%;
+  border-top: 7px solid #c79768;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(131, 80, 43, 0.16) 32px,
+      transparent 34px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 82px,
+      rgba(131, 80, 43, 0.12) 83px,
+      transparent 85px
+    ),
+    linear-gradient(
+      180deg,
+      #e9c49a,
+      #d9aa79
+    );
+}
+
+/* ---------- LAYER FURNITUR, KARAKTER, LUMI ---------- */
+
+#house-furniture,
+#house-characters,
+#house-lumi {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Furnitur dan karakter harus bisa menerima sentuhan */
+
+#house-furniture .house-item,
+#house-characters .house-item,
+#house-lumi .house-item {
+  pointer-events: auto;
+}
+
+/* ---------- FURNITUR ---------- */
+
+#house-furniture .house-item {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(44px, 11vw, 68px);
+  height: clamp(44px, 11vw, 68px);
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 15px;
+  background: rgba(255, 250, 242, 0.42);
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  line-height: 1;
+  cursor: grab;
+  transform: translate(-50%, -50%);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  touch-action: none;
+}
+
+#house-furniture .house-item:hover {
+  background: rgba(255, 250, 242, 0.85);
+}
+
+#house-furniture .house-item.editable {
+  border-color: #c4a8ef;
+  border-style: dashed;
+  background: rgba(242, 232, 255, 0.78);
+  box-shadow: 0 4px 12px rgba(127, 95, 172, 0.16);
+}
+
+#house-furniture .house-item:active {
+  cursor: grabbing;
+}
+
+/* ---------- KARAKTER ALDI DAN LIZA ---------- */
+
+#house-characters .character {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 45px;
+  padding: 3px;
+  border-radius: 13px;
+  font-size: clamp(1.7rem, 6vw, 2.6rem);
+  line-height: 1.15;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 3px 2px rgba(83, 56, 40, 0.14));
+  animation: house-character-idle 2.5s ease-in-out infinite;
+}
+
+#house-characters .character:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+@keyframes house-character-idle {
+  0%, 100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -3px;
+  }
+}
+
+#house-characters .house-name {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1px solid rgba(225, 203, 185, 0.8);
+  border-radius: 20px;
+  background: #fffaf4;
+  color: #785c4a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(83, 56, 40, 0.08);
+}
+
+/* ---------- LUMI DI DALAM RUMAH ---------- */
+
+#house-lumi .lumi-house {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #f4c4d2;
+  border-radius: 17px;
+  background: #fff0f4;
+  box-shadow: 0 5px 12px rgba(186, 112, 141, 0.18);
+  font-size: 2rem;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  animation: lumi-house-bounce 1.8s ease-in-out infinite;
+}
+
+@keyframes lumi-house-bounce {
+  0%, 100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -5px;
+  }
+}
+
+/* ---------- STATUS RUMAH ---------- */
+
+#house-status {
+  min-height: 23px;
+  margin: 12px 2px 16px;
+  color: #947761;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+/* ---------- KONTROL GERAK ---------- */
+
+#page-house .house-joystick,
+#page-house .joystick,
+#page-house .house-movement {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(2, 48px);
+  justify-content: center;
+  gap: 8px;
+  margin: 16px auto;
+}
+
+/* Tombol arah */
+
+#joy-up,
+#joy-down,
+#joy-left,
+#joy-right {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid #ead8c8;
+  border-radius: 15px;
+  background: #fffaf3;
+  color: #88674e;
+  font-size: 1.25rem;
+  font-weight: 800;
+  box-shadow: 0 4px 0 #e7d2be;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
+}
+
+#joy-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#joy-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#joy-down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+#joy-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+#joy-up:hover,
+#joy-down:hover,
+#joy-left:hover,
+#joy-right:hover {
+  background: #f9e7ed;
+}
+
+#joy-up:active,
+#joy-down:active,
+#joy-left:active,
+#joy-right:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #e7d2be;
+}
+
+/* ---------- PETUNJUK KECIL ---------- */
+
+#page-house .house-hint {
+  margin: 8px 0 16px;
+  color: #a18b79;
+  font-size: 0.78rem;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ---------- KARTU RUMAH DI HALAMAN LAIN ---------- */
+
+.house-card {
+  overflow: hidden;
+  border: 1px solid #f0dfd0;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #fffaf2, #fff0f3);
+  box-shadow: 0 7px 18px rgba(103, 72, 51, 0.07);
+}
+
+/* ---------- RESPONSIVE: HP ---------- */
+
+@media (max-width: 480px) {
+  #page-house {
+    padding-inline: 0;
+  }
+
+  #house-world {
+    aspect-ratio: 0.96 / 1;
+    min-height: 310px;
+    max-height: 430px;
+    border-width: 4px;
+    border-radius: 19px;
+  }
+
+  #house-world::before {
+    bottom: 29%;
+  }
+
+  #house-world::after {
+    height: 30%;
+  }
+
+  #house-furniture .house-item {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    font-size: 1.85rem;
+  }
+
+  #house-characters .character {
+    font-size: 1.8rem;
+  }
+
+  #house-characters .house-name {
+    padding: 3px 7px;
+    font-size: 0.63rem;
+  }
+
+  #house-lumi .lumi-house {
+    width: 43px;
+    height: 43px;
+    font-size: 1.8rem;
+  }
+
+  #page-house .house-controls {
+    gap: 8px;
+  }
+
+  #house-room,
+  #house-edit {
+    min-height: 42px;
+    padding: 9px 11px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- AKSESIBILITAS ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  #page-house.active,
+  #house-characters .character,
+  #house-lumi .lumi-house {
+    animation: none !important;
+  }
+
+  #house-edit,
+  #joy-up,
+  #joy-down,
+  #joy-left,
+  #joy-right {
+    transition: none;
+  }
+    }
 
