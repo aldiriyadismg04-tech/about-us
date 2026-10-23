@@ -1739,7 +1739,7 @@ const HOUSE_DEFAULT = {
     dumbbell: 2, treadmill: 1, yoga: 2, ball: 3,
     bookshelfSmall: 2, trashbin: 2, refrigeratorSmall: 1,
     guitarAmp: 1, plantSmall: 5, candle: 4, cushion: 5,
-    petbed: 1, catTree: 1, doorplant: 2, doll: 2, partition: 20
+    petbed: 1, catTree: 1, doorplant: 2, doll: 2, partition: 7
   },
   lumi: { x: 58, y: 76, room: "living" }
 };
@@ -1792,18 +1792,9 @@ const HOUSE_ITEMS = {
   cushion:          { name: "Bantal", width: 10, height: 8 },
   petbed:           { name: "Tempat tidur Lumi", width: 12, height: 9 },
   catTree:          { name: "Pohon kucing", width: 12, height: 18 },
-  doorplant:        { name: "Tanaman pot", width: 10, height: 13 }
-  doll: {
-  name: "Boneka",
-  width: 10,
-  height: 15
-},
-partition: {
-  name: "Tembok pemisah",
-  width: 24,
-  height: 12,
-  solid: true
-}
+  doorplant:        { name: "Tanaman pot", width: 10, height: 13 }, 
+  doll:             { name: "Boneka", width: 10, height: 15},
+  partition:        { name: "Tembok pemisah", width: 24, height: 12, solid: true}
 };
 
 let houseState = JSON.parse(JSON.stringify(HOUSE_DEFAULT));
