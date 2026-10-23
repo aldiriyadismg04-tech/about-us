@@ -1739,7 +1739,7 @@ const HOUSE_DEFAULT = {
     dumbbell: 2, treadmill: 1, yoga: 2, ball: 3,
     bookshelfSmall: 2, trashbin: 2, refrigeratorSmall: 1,
     guitarAmp: 1, plantSmall: 5, candle: 4, cushion: 5,
-    petbed: 1, catTree: 1, doorplant: 2
+    petbed: 1, catTree: 1, doorplant: 2, doll: 2, partition: 4
   },
   lumi: { x: 58, y: 76, room: "living" }
 };
@@ -2228,6 +2228,22 @@ function houseFurnitureSVG(type) {
       <rect x="15" y="9" width="34" height="8" fill="#d9b08a"/>
       <rect x="21" y="17" width="22" height="12" fill="#8b694d"/>
       <rect x="24" y="20" width="16" height="8" fill="#bda0d8"/>`,
+    doll: `
+      <rect x="20" y="28" width="24" height="25" fill="#d98cae"/>
+      <rect x="18" y="8" width="28" height="25" fill="#f0c6a5"/>
+      <rect x="17" y="6" width="30" height="10" fill="#8b5b49"/>
+      <rect x="23" y="18" width="4" height="4" fill="#443047"/>
+      <rect x="37" y="18" width="4" height="4" fill="#443047"/>
+      <rect x="27" y="26" width="10" height="3" fill="#b86f8c"/>
+      <rect x="15" y="33" width="8" height="13" fill="#f0c6a5"/>
+      <rect x="41" y="33" width="8" height="13" fill="#f0c6a5"/>
+      <rect x="22" y="49" width="8" height="7" fill="#76506f"/>
+      <rect x="34" y="49" width="8" height="7" fill="#76506f"/>`,
+    partition: `
+      <rect x="3" y="22" width="58" height="16" fill="#9d7655"/>
+      <rect x="3" y="22" width="58" height="4" fill="#d9b58a"/>
+      <rect x="3" y="34" width="58" height="4" fill="#6e4d3c"/>
+      <rect x="7" y="26" width="50" height="7" fill="#b88d65"/>`,
     doorplant: `
       <rect x="22" y="37" width="20" height="16" fill="#a86f49"/>
       <rect x="18" y="34" width="28" height="5" fill="#d4a174"/>
@@ -2337,6 +2353,7 @@ function houseRenderBag() {
       const room = houseRoom();
       const placed = houseState.furniture.filter(item => item.room === room);
       const offset = (placed.length % 5) * 5;
+      const topZ = Math.max(0, ...houseState.furniture.filter(item => item.room === room).map(item => Number(item.zIndex) || 0)) + 1;
 
       houseState.furniture.push({
         id: houseId(type),
@@ -2393,7 +2410,7 @@ function houseRender() {
           class="house-item furniture ${houseEditMode ? "editable" : ""}"
           data-house-kind="furniture"
           data-house-id="${escapeHTML(item.id)}"
-          style="left:${item.x}%;top:${item.y}%;z-index:${item.zIndex || 1};--item-width:${info.width}%;--item-height:${info.height}%"
+          style="left:${item.x}%;top:${item.y}%;z-index:${item.zIndex || 1};--item-width:${info.width}%;--item-height:${info.height}%;--item-scale:${item.scale || 100}%;--item-rotation:${item.rotation || 0}deg;--item-mirror:${item.mirror ? -1 : 1}"
           aria-label="${escapeHTML(info.name)}">
           ${houseFurnitureSVG(item.type)}
           <span class="house-item-label">${escapeHTML(info.name)}</span>
@@ -2452,6 +2469,67 @@ function houseRender() {
   );
 
   houseRenderBag();
+}
+
+
+/* Furniture editing toolbar */
+function houseEnsureFurnitureToolbar() {
+  if ($("#house-furniture-toolbar")) return;
+  const toolbar = document.createElement("div");
+  toolbar.id = "house-furniture-toolbar";
+  toolbar.className = "house-furniture-toolbar";
+  toolbar.hidden = true;
+  toolbar.innerHTML = `
+    <div class="house-furniture-toolbar-title"><span id="house-selected-name">Furnitur</span><button type="button" data-house-action="store" aria-label="Simpan ke tas">Simpan ke tas ↩</button></div>
+    <label>Ukuran <input id="house-item-scale" type="range" min="40" max="180" value="100" step="5"></label>
+    <div class="house-furniture-actions">
+      <button type="button" data-house-action="rotate-left">↶ Putar</button>
+      <button type="button" data-house-action="rotate-right">Putar ↷</button>
+      <button type="button" data-house-action="mirror">⇋ Balik</button>
+      <button type="button" data-house-action="front">Ke depan</button>
+      <button type="button" data-house-action="back">Ke belakang</button>
+    </div>`;
+  $("#house-bottom-panel")?.prepend(toolbar);
+  if (!$("#house-bottom-panel")) $("#page-house")?.append(toolbar);
+  toolbar.addEventListener("pointerdown", e => e.stopPropagation());
+  toolbar.addEventListener("click", e => {
+    const button = e.target.closest("[data-house-action]");
+    if (!button || !houseSelectedItem || !houseEditMode) return;
+    const item = houseState.furniture.find(x => x.id === houseSelectedItem);
+    if (!item) return;
+    const action = button.dataset.houseAction;
+    if (action === "store") {
+      houseState.inventory[item.type] = (Number(houseState.inventory[item.type]) || 0) + 1;
+      houseState.furniture = houseState.furniture.filter(x => x.id !== item.id);
+      houseSelectedItem = null;
+      houseRender(); scheduleHouseSave(); return;
+    }
+    if (action === "rotate-left") item.rotation = ((Number(item.rotation) || 0) - 15 + 360) % 360;
+    if (action === "rotate-right") item.rotation = ((Number(item.rotation) || 0) + 15) % 360;
+    if (action === "mirror") item.mirror = !item.mirror;
+    if (action === "front") item.zIndex = Math.max(0, ...houseState.furniture.filter(x => x.room === item.room).map(x => Number(x.zIndex)||0)) + 1;
+    if (action === "back") item.zIndex = Math.min(0, ...houseState.furniture.filter(x => x.room === item.room).map(x => Number(x.zIndex)||0)) - 1;
+    houseRender(); scheduleHouseSave();
+  });
+  toolbar.querySelector("#house-item-scale")?.addEventListener("input", e => {
+    const item = houseState.furniture.find(x => x.id === houseSelectedItem);
+    if (!item) return;
+    item.scale = Number(e.target.value);
+    const el = $(`#house-furniture [data-house-id="${CSS.escape(item.id)}"] .house-furniture-transform`);
+    if (el) el.style.transform = `rotate(${item.rotation || 0}deg) scaleX(${item.mirror ? -1 : 1}) scale(${item.scale / 100})`;
+  });
+  toolbar.querySelector("#house-item-scale")?.addEventListener("change", scheduleHouseSave);
+}
+function houseUpdateFurnitureToolbar() {
+  houseEnsureFurnitureToolbar();
+  const toolbar = $("#house-furniture-toolbar");
+  const item = houseState.furniture.find(x => x.id === houseSelectedItem && x.room === houseRoom());
+  if (!toolbar) return;
+  toolbar.hidden = !houseEditMode || !item;
+  if (item) {
+    $("#house-selected-name").textContent = HOUSE_ITEMS[item.type]?.name || item.type;
+    $("#house-item-scale").value = item.scale || 100;
+  }
 }
 
 /* ==========================================
@@ -2557,6 +2635,16 @@ function houseStopWalking() {
   houseWalkFrame = null;
 }
 
+
+function houseBlocked(x, y, room, movingId) {
+  return houseState.furniture.some(item => {
+    if (item.room !== room || item.id === movingId || !HOUSE_ITEMS[item.type]?.solid) return false;
+    const halfW = (HOUSE_ITEMS[item.type].width || 20) / 2;
+    const halfH = (HOUSE_ITEMS[item.type].height || 5) / 2 + 2;
+    return Math.abs(x - item.x) < halfW && Math.abs(y - item.y) < halfH;
+  });
+}
+
 function houseWalkTo(clientX, clientY) {
   if (!currentUser || houseEditMode || houseBusy) return;
 
@@ -2589,6 +2677,7 @@ function houseWalkTo(clientX, clientY) {
   const token = houseWalkToken;
   const startX = person.x;
   const startY = person.y;
+  if (houseBlocked(x, y, houseRoom(), null)) { setStatus("#house-status", "Ada tembok pemisah di sana."); return; }
   const distance = Math.hypot(x - startX, y - startY);
   const duration = Math.max(180, Math.min(900, distance * 18));
   const startTime = performance.now();
@@ -2599,8 +2688,9 @@ function houseWalkTo(clientX, clientY) {
     const progress = Math.min(1, (now - startTime) / duration);
     const eased = 1 - Math.pow(1 - progress, 3);
 
-    person.x = startX + (x - startX) * eased;
-    person.y = startY + (y - startY) * eased;
+    const nextX = startX + (x - startX) * eased;
+    const nextY = startY + (y - startY) * eased;
+    if (!houseBlocked(nextX, nextY, houseRoom(), null)) { person.x = nextX; person.y = nextY; }
 
     const character = $(
       `#house-characters [data-house-id="${id}"]`
@@ -2673,6 +2763,7 @@ const houseWorld = $("#house-world");
 houseWorld?.addEventListener("pointerdown", event => {
   if (!houseEditMode || houseDrag) return;
 
+  if (event.target.closest(".house-furniture-toolbar")) return;
   const element = event.target.closest("[data-house-kind]");
   if (!element) return;
 
@@ -2686,6 +2777,7 @@ houseWorld?.addEventListener("pointerdown", event => {
   if (!["furniture", "character", "lumi"].includes(kind)) return;
 
   event.preventDefault();
+  if (kind === "furniture") { houseSelectedItem = id; houseRender(); }
   houseStopWalking();
 
   houseDrag = {
