@@ -1739,7 +1739,7 @@ const HOUSE_DEFAULT = {
     dumbbell: 2, treadmill: 1, yoga: 2, ball: 3,
     bookshelfSmall: 2, trashbin: 2, refrigeratorSmall: 1,
     guitarAmp: 1, plantSmall: 5, candle: 4, cushion: 5,
-    petbed: 1, catTree: 1, doorplant: 2, doll: 2, partition: 4
+    petbed: 1, catTree: 1, doorplant: 2, doll: 2, partition: 20
   },
   lumi: { x: 58, y: 76, room: "living" }
 };
@@ -1793,6 +1793,17 @@ const HOUSE_ITEMS = {
   petbed:           { name: "Tempat tidur Lumi", width: 12, height: 9 },
   catTree:          { name: "Pohon kucing", width: 12, height: 18 },
   doorplant:        { name: "Tanaman pot", width: 10, height: 13 }
+  doll: {
+  name: "Boneka",
+  width: 10,
+  height: 15
+},
+partition: {
+  name: "Tembok pemisah",
+  width: 24,
+  height: 12,
+  solid: true
+}
 };
 
 let houseState = JSON.parse(JSON.stringify(HOUSE_DEFAULT));
@@ -2412,8 +2423,11 @@ function houseRender() {
           data-house-id="${escapeHTML(item.id)}"
           style="left:${item.x}%;top:${item.y}%;z-index:${item.zIndex || 1};--item-width:${info.width}%;--item-height:${info.height}%;--item-scale:${item.scale || 100}%;--item-rotation:${item.rotation || 0}deg;--item-mirror:${item.mirror ? -1 : 1}"
           aria-label="${escapeHTML(info.name)}">
-          ${houseFurnitureSVG(item.type)}
-          <span class="house-item-label">${escapeHTML(info.name)}</span>
+          <span class="house-furniture-transform"
+  style="display:block;transform:rotate(${item.rotation || 0}deg) scaleX(${item.mirror ? -1 : 1}) scale(${(item.scale || 100) / 100});">
+  ${houseFurnitureSVG(item.type)}
+</span>
+<span class="house-item-label">${escapeHTML(info.name)}</span>
         </button>
       `;
     }).join("");
@@ -2469,6 +2483,7 @@ function houseRender() {
   );
 
   houseRenderBag();
+houseUpdateFurnitureToolbar();
 }
 
 
